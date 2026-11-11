@@ -43,6 +43,29 @@ npm install --save-exact expo-speech-recognition@2.1.5
 
 Następnie wykonaj jedną czystą kompilację Android w swoim środowisku. `npx expo prebuild --clean --platform android` regeneruje natywne pliki — zabezpiecz własne zmiany Android przed użyciem. Nie odinstalowuj aplikacji i nie czyść jej danych: historia jest lokalna. Ponowne kompilowanie bez poprawienia zależności nie jest testem rozwiązania.
 
+## Poprawka przekazana z Codexa — zakres przeniesienia
+
+Dodano `eas.json` z profilem `preview`, dystrybucją wewnętrzną i typem Android `apk`, zgodnie z przekazanym diffem. Ten profil dotyczy kompilacji uruchomionej przez EAS; nie potwierdza, że przycisk pobierania OnSpace używa tego profilu, i nie zmienia wersji bibliotek.
+
+`package.json`, plik blokady zależności i `.gitignore` są chronione w tym edytorze. Nie przeniesiono wpisów `expo-speech-recognition: 2.1.5`, `ajv: 8.20.0` ani reguł ignorowania `.env`. Nie zweryfikowano konieczności dodania `ajv`; wcześniejszy log dotyczył kompilacji Kotlin modułu mowy, a nie walidatora JSON.
+
+Przypięcie modułu mowy trzeba wykonać w Codexie lub lokalnie, w katalogu projektu, razem z aktualizacją pliku blokady:
+
+```sh
+npm install --save-exact expo-speech-recognition@2.1.5
+npm ls expo expo-speech-recognition
+node scripts/check-core.cjs
+npx tsc --noEmit
+```
+
+Po sprawdzeniu zależności można uruchomić kompilację na koncie Expo/EAS, po skonfigurowaniu projektu i poświadczeń Android:
+
+```sh
+npx eas-cli build --platform android --profile preview
+```
+
+Dodanie konfiguracji nie oznacza zbudowania APK ani usunięcia błędu Kotlin. Potrzebny jest wynik kompilacji i test mowy na zainstalowanej aplikacji. Reguły `.gitignore` nie usuwają plików `.env`, które były już śledzone przez Git; sekretów nie należy wklejać do czatu ani commitować.
+
 ## Minimalny test przed kolejnym wydaniem
 
 1. Po poprawieniu zależności wykonaj sprawdzenie typów i testy lokalne, a dopiero potem kompilację. Jeśli nadal nie działa, zachowaj konkretne linie `e:` z logu Kotlin.
