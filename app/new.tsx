@@ -16,7 +16,7 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 
 const stepNames = ['Pojazd', 'Opis', 'Ceny', 'Zapis'];
 const titles = ['Dla którego pojazdu?', 'Co zostało zrobione?', 'Sprawdź pozycje i ceny', 'Sprawdź i zapisz kosztorys'];
-const subtitles = ['Wpisz markę i model. Rejestracja jest opcjonalna.', 'Podyktuj lub wpisz opis. Ceny uzupełnisz za chwilę.', 'Popraw nazwy, ilości i kwoty. Wszystkie ceny są brutto.', 'To ostatni krok. Po zapisaniu udostępnisz PDF klientowi.'];
+const subtitles = ['Wpisz markę i model. Rejestracja jest opcjonalna.', 'Wpisz opis lub użyj mikrofonu klawiatury. Ceny uzupełnisz za chwilę.', 'Popraw nazwy, ilości i kwoty. Wszystkie ceny są brutto.', 'To ostatni krok. Po zapisaniu udostępnisz PDF klientowi.'];
 
 export function NewEstimatePage() {
   const draft = useEstimateDraft();

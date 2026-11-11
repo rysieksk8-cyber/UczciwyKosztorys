@@ -1,3 +1,4 @@
+import { keyboardDictationEnabled } from '@/constants/voice';
 import { systemSpeechMessages } from './systemSpeechTypes';
 import type { SystemSpeechAvailability, SystemSpeechCallbacks, SystemSpeechSession } from './systemSpeechTypes';
 
@@ -33,12 +34,14 @@ function getBrowserRecognition() {
 }
 
 export function getSystemSpeechAvailability(): SystemSpeechAvailability {
+  if (keyboardDictationEnabled) return { available: false, reason: systemSpeechMessages.keyboardOnly };
   return getBrowserRecognition()
     ? { available: true, reason: '' }
     : { available: false, reason: systemSpeechMessages.unsupportedBrowser };
 }
 
 export function createSystemSpeechSession(callbacks: SystemSpeechCallbacks): SystemSpeechSession {
+  if (keyboardDictationEnabled) throw new Error(systemSpeechMessages.keyboardOnly);
   const Recognition = getBrowserRecognition();
   if (!Recognition) {
     throw new Error(systemSpeechMessages.unsupportedBrowser);

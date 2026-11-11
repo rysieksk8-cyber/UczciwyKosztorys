@@ -4,6 +4,7 @@ export interface SystemSpeechAvailability {
 }
 
 export const systemSpeechMessages = {
+  keyboardOnly: 'W tej wersji użyj mikrofonu klawiatury telefonu. Dotknij pola opisu, potem mikrofonu na klawiaturze i mów po polsku. Przycisk nagrywania w aplikacji jest tymczasowo wyłączony. Jeśli klawiatura nie udostępnia dyktowania, wpisz tekst ręcznie.',
   missingModule: 'Ta zainstalowana wersja aplikacji nie zawiera modułu mowy. W OnSpace wybierz Download → Android APK, wygeneruj nowy plik i zainstaluj go na telefonie jako aktualizację. Na iOS wymagana jest nowa kompilacja. Expo Go i starszy klient podglądu nie dodadzą modułu po odświeżeniu. Nie usuwaj danych aplikacji — zawierają lokalną historię. Do czasu aktualizacji możesz wpisać opis ręcznie.',
   unsupportedBrowser: 'Ta przeglądarka nie udostępnia systemowego rozpoznawania mowy. Spróbuj w Chrome lub użyj nowej kompilacji aplikacji na telefon. Opis możesz nadal wpisać ręcznie.',
   unavailableService: 'Telefon nie udostępnia usługi rozpoznawania mowy. Na Androidzie włącz lub zaktualizuj aplikację Google i usługę rozpoznawania mowy. Na iOS sprawdź dostępność dyktowania. Po zmianie ustawień wróć do aplikacji.',

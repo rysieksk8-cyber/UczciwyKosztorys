@@ -1,5 +1,35 @@
 # Kosztorys Mechanika — przegląd jakości
 
+## Aktualne obejście: dyktowanie klawiaturą zamiast modułu natywnego
+
+Po uzyskaniu zgody użytkownika włączono tymczasowy tryb `expo.extra.voiceInputMode: "keyboard"`. Poniższe starsze sekcje opisują wcześniejsze etapy; aktualny przepływ dyktowania opisuje ta sekcja.
+
+- Krok „Opis” otwiera zwykłe, edytowalne pole tekstowe. Przycisk „Otwórz klawiaturę” ustawia fokus w polu — nie uruchamia automatycznie mikrofonu. Użytkownik sam dotyka mikrofonu swojej klawiatury. Dostępność dyktowania, uprawnienia i język polski zależą od telefonu i klawiatury. Pisanie ręczne jest nadal dostępne.
+- Aplikacja nie nagrywa głosu i nie wywołuje OnSpace AI. Otrzymuje tekst z klawiatury; dostawca klawiatury lub system może przetwarzać głos w swojej usłudze. Dodano widoczną instrukcję oraz pomoc dla Androida i iPhone'a.
+- Zachowano plugin `withSpeechCompatibility`. W trybie klawiatury dopisuje wykluczenie `expo-speech-recognition` do wygenerowanego `android/settings.gradle` i `ios/Podfile`. Usunięto z app.json plugin samego pakietu mowy; samo usunięcie pluginu nie wystarczałoby do zatrzymania kompilacji biblioteki.
+- Dodano `react-native.config.js` z wyłączeniem tego samego pakietu dla autolinkowania React Native, niezależnie od autolinkowania Expo. Serwis natywny nie importuje ani nie odwołuje się do modułu mowy. Ten sam przełącznik z app.json jest odczytywany przez interfejs i konfigurację natywną.
+- Nie zmieniono package.json, plików blokady ani node_modules. Pakiet może nadal być instalowany, lecz konfiguracja ma wykluczyć go z natywnej kompilacji. Nie jest to naprawa jego wersji ani regeneracja pnpm-lock.yaml.
+- Implementacja opiera się na API Expo SDK 53: `expoAutolinking.exclude` przed `expoAutolinking.useExpoModules()` oraz opcji `:exclude` w `use_expo_modules!`. SDK 53 ma błąd przekazywania wielu wykluczeń jako jednego argumentu; tutaj użyto jednego pakietu. Jeśli istnieją inne wykluczenia albo układ plików jest nieznany, plugin zatrzymuje operację zamiast nadpisywać pozostałą konfigurację lub dopuszczać wadliwy moduł.
+- Nie zmieniono klucza pamięci, historii, cen, ustawień, PDF ani WhatsApp. Nie odinstalowuj aplikacji ani nie czyść jej danych przy aktualizacji.
+
+### Stan weryfikacji
+
+Przeanalizowano kod i szablony/API Expo SDK 53. Dodano `scripts/check-speech-bypass.cjs` z kontrolą konfiguracji, idempotencji transformacji, CRLF, zachowania innych wpisów i bezpiecznej odmowy dla nieznanych szablonów. **Nie uruchomiono testów, prebuild ani kompilacji APK** — edytor nie udostępnia terminala. Obejście nie gwarantuje, że nie wystąpi inny błąd budowy. Nie należy uznawać APK za naprawione bez wyniku kompilacji.
+
+Lokalne kontrole po eksporcie, bez generowania APK:
+
+```sh
+node scripts/check-speech-bypass.cjs
+node scripts/check-core.cjs
+npx tsc --noEmit
+```
+
+Po wygenerowaniu projektu natywnego można sprawdzić zapisane wykluczenia przez `node scripts/check-speech-bypass.cjs --verify-native`. To nadal nie jest test kompilacji Kotlin ani działającego APK. W logu prawdziwej kompilacji `expo-speech-recognition` nie powinien występować na liście używanych modułów ani jako zadanie `:expo-speech-recognition:compileDebugKotlin`. Odświeżenie podglądu nie przebudowuje zainstalowanej aplikacji.
+
+Test telefonu: otwórz nowy kosztorys → „Opis” → pole tekstowe → mikrofon klawiatury, podyktuj nazwę pracy i ceny, popraw liczby, przejdź do pozycji, zapisz i przygotuj PDF. Sprawdź też pisanie bez mikrofonu i brak utraty starej historii.
+
+Przywrócenie przycisku mikrofonu w aplikacji wymaga ponownego dodania serwisu natywnego oraz pluginu pakietu, zgodnej z Expo zainstalowanej wersji i nowej kompilacji. Samo przełączenie `voiceInputMode` nie przywraca mowy. Oryginalna kontrola zgodności wersji pozostaje w `withSpeechCompatibility` dla trybu systemowego.
+
 ## Zakres i ograniczenia
 
 Wykonano przegląd statyczny istniejących ekranów, nawigacji, zapisu, parsera, wyceny, PDF, WhatsApp i dyktowania. W narzędziach podglądu nie znaleziono zapisanych żądań sieciowych; nie stanowi to testu działania funkcji.
