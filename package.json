@@ -1,4 +1,5 @@
 {
+
   "name": "onspace-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
@@ -17,6 +18,7 @@
     "@react-native-community/datetimepicker": "^8.3.0",
     "@supabase/supabase-js": "^2.50.0",
     "expo": "~53.0.9",
+    "expo-speech-recognition": "2.1.5",
     "expo-blur": "~14.1.4",
     "expo-camera": "~16.1.11",
     "expo-constants": "~17.1.6",
