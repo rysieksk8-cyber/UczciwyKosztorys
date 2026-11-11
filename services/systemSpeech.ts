@@ -1,20 +1,40 @@
 import { Platform } from 'react-native';
-import type { SystemSpeechCallbacks, SystemSpeechSession } from './systemSpeechTypes';
+import { requireOptionalNativeModule } from 'expo-modules-core';
+import { systemSpeechMessages } from './systemSpeechTypes';
+import type { SystemSpeechAvailability, SystemSpeechCallbacks, SystemSpeechSession } from './systemSpeechTypes';
 
-// Load only when requested: older preview clients may not contain this native module.
-function getSpeechModule() {
+// Type-only reference: importing the package at runtime eagerly calls requireNativeModule
+// and can produce a Hermes fatal error in Expo Go or an older installed APK.
+// The config plugin in app.json still includes this dependency in new native builds.
+type SpeechModule = typeof import('expo-speech-recognition').ExpoSpeechRecognitionModule;
+
+function getSpeechModule(): SpeechModule | null {
   try {
-    const library = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
-    return library.ExpoSpeechRecognitionModule;
+    return requireOptionalNativeModule<SpeechModule>('ExpoSpeechRecognition');
   } catch {
-    throw new Error('Ten podgląd nie zawiera modułu systemowej mowy. Pobierz nową kompilację APK przyciskiem „Download” i zainstaluj ją na telefonie. Na iOS potrzebna jest nowa kompilacja aplikacji. Samo odświeżenie podglądu nie dodaje modułu. Opis nadal możesz wpisać ręcznie.');
+    // Unsupported preview clients may not expose Expo's module registry.
+    return null;
+  }
+}
+
+export function getSystemSpeechAvailability(): SystemSpeechAvailability {
+  const speech = getSpeechModule();
+  if (!speech) return { available: false, reason: systemSpeechMessages.missingModule };
+  try {
+    if (!speech.isRecognitionAvailable()) {
+      return { available: false, reason: systemSpeechMessages.unavailableService };
+    }
+    return { available: true, reason: '' };
+  } catch {
+    return { available: false, reason: systemSpeechMessages.unavailableService };
   }
 }
 
 export function createSystemSpeechSession(callbacks: SystemSpeechCallbacks): SystemSpeechSession {
   const speech = getSpeechModule();
+  if (!speech) throw new Error(systemSpeechMessages.missingModule);
   if (!speech.isRecognitionAvailable()) {
-    throw new Error('Telefon nie udostępnia usługi rozpoznawania mowy. Na Androidzie włącz lub zaktualizuj aplikację Google i usługę rozpoznawania mowy. Na iOS sprawdź dostępność dyktowania.');
+    throw new Error(systemSpeechMessages.unavailableService);
   }
   let disposed = false;
   let started = false;

@@ -1,4 +1,5 @@
-import type { SystemSpeechCallbacks, SystemSpeechSession } from './systemSpeechTypes';
+import { systemSpeechMessages } from './systemSpeechTypes';
+import type { SystemSpeechAvailability, SystemSpeechCallbacks, SystemSpeechSession } from './systemSpeechTypes';
 
 interface BrowserSpeechResult {
   isFinal: boolean;
@@ -22,15 +23,25 @@ interface BrowserSpeechRecognizer {
   abort: () => void;
 }
 
-export function createSystemSpeechSession(callbacks: SystemSpeechCallbacks): SystemSpeechSession {
-  // Browser APIs are accessed only after the user presses the microphone, never during SSR.
+function getBrowserRecognition() {
+  // Called from a mounted hook or a user action, never during server rendering.
   const browser = globalThis as typeof globalThis & {
     SpeechRecognition?: new () => BrowserSpeechRecognizer;
     webkitSpeechRecognition?: new () => BrowserSpeechRecognizer;
   };
-  const Recognition = browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
+  return browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
+}
+
+export function getSystemSpeechAvailability(): SystemSpeechAvailability {
+  return getBrowserRecognition()
+    ? { available: true, reason: '' }
+    : { available: false, reason: systemSpeechMessages.unsupportedBrowser };
+}
+
+export function createSystemSpeechSession(callbacks: SystemSpeechCallbacks): SystemSpeechSession {
+  const Recognition = getBrowserRecognition();
   if (!Recognition) {
-    throw new Error('Ta przeglądarka nie udostępnia systemowego rozpoznawania mowy. Spróbuj w Chrome lub pobierz nową kompilację aplikacji na telefon. W podglądzie możesz też wpisać opis ręcznie.');
+    throw new Error(systemSpeechMessages.unsupportedBrowser);
   }
   const speech = new Recognition();
   const delivered = new Set<number>();

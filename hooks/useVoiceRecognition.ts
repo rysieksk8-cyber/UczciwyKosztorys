@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { voiceLimits } from '@/constants/voice';
-import { createSystemSpeechSession } from '@/services/systemSpeech';
+import { createSystemSpeechSession, getSystemSpeechAvailability } from '@/services/systemSpeech';
 import { systemSpeechError } from '@/services/systemSpeechTypes';
-import type { SystemSpeechSession } from '@/services/systemSpeechTypes';
+import type { SystemSpeechAvailability, SystemSpeechSession } from '@/services/systemSpeechTypes';
 
 type VoicePhase = 'idle' | 'starting' | 'recording' | 'finishing';
 interface VoiceOptions { onRecognized: (text: string) => void }
 
 export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
+  const [availability, setAvailability] = useState<SystemSpeechAvailability | null>(null);
   const [phase, setPhase] = useState<VoicePhase>('idle');
   const [seconds, setSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState('');
@@ -78,8 +80,17 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
 
   useEffect(() => {
     alive.current = true;
+    const refreshAvailability = () => {
+      if (alive.current) setAvailability(getSystemSpeechAvailability());
+    };
+    refreshAvailability();
+    // Recheck if the user enables the phone's speech service in device settings.
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active' && phaseRef.current === 'idle') refreshAvailability();
+    });
     return () => {
       alive.current = false;
+      subscription.remove();
       clearTimers();
       const current = sessionRef.current;
       sessionRef.current = null;
@@ -90,6 +101,12 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
   const toggleRecording = useCallback(async () => {
     if (phaseRef.current === 'recording') { stopRecording(); return; }
     if (phaseRef.current !== 'idle') return;
+    const support = getSystemSpeechAvailability();
+    setAvailability(support);
+    if (!support.available) {
+      setVoiceError('');
+      return;
+    }
     updatePhase('starting');
     setVoiceError('');
     setRecognized(false);
@@ -154,6 +171,9 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
   }, [complete, stopRecording, updatePhase]);
 
   return {
+    voiceAvailable: availability?.available ?? false,
+    voiceChecking: availability === null,
+    voiceUnavailableReason: availability?.reason ?? '',
     recording: phase === 'recording',
     recordBusy: phase === 'starting' || phase === 'finishing',
     finishing: phase === 'finishing',

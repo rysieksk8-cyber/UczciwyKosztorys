@@ -16,9 +16,13 @@ interface VoicePanelProps {
   error: string;
   recognized: boolean;
   liveTranscript: string;
+  available: boolean;
+  checking: boolean;
+  unavailableReason: string;
 }
 
-export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recording, busy, finishing, seconds, onRecord, error, recognized, liveTranscript }: VoicePanelProps) {
+export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recording, busy, finishing, seconds, onRecord, error, recognized, liveTranscript, available, checking, unavailableReason }: VoicePanelProps) {
+  const microphoneDisabled = busy || checking || !available;
   const time = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
   return (
     <View style={styles.root}>
@@ -26,27 +30,29 @@ export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recor
         <Text style={styles.kicker}>MOWA SYSTEMOWA · POLSKI</Text>
         <Pressable
           onPress={onRecord}
-          disabled={busy}
+          disabled={microphoneDisabled}
           accessibilityRole="button"
-          accessibilityState={{ disabled: busy, busy }}
-          accessibilityLabel={recording ? 'Zatrzymaj dyktowanie' : finishing ? 'Kończenie rozpoznawania mowy' : 'Rozpocznij dyktowanie opisu po polsku'}
-          style={({ pressed }) => [styles.outer, recording ? styles.recording : null, busy ? styles.disabled : null, pressed ? styles.pressed : null]}
+          accessibilityState={{ disabled: microphoneDisabled, busy: busy || checking }}
+          accessibilityLabel={checking ? 'Sprawdzanie dostępności dyktowania' : !available ? 'Dyktowanie niedostępne w tej wersji aplikacji' : recording ? 'Zatrzymaj dyktowanie' : finishing ? 'Kończenie rozpoznawania mowy' : 'Rozpocznij dyktowanie opisu po polsku'}
+          accessibilityHint={!available && !checking ? unavailableReason : undefined}
+          style={({ pressed }) => [styles.outer, recording ? styles.recording : null, microphoneDisabled ? styles.disabled : null, pressed ? styles.pressed : null]}
         >
           <View style={styles.mic}>
-            {busy ? <ActivityIndicator color={colors.primaryDark} /> : <Feather name={recording ? 'square' : 'mic'} size={38} color={colors.primaryDark} />}
+            {busy || checking ? <ActivityIndicator color={colors.primaryDark} /> : <Feather name={!available ? 'mic-off' : recording ? 'square' : 'mic'} size={38} color={colors.primaryDark} />}
           </View>
         </Pressable>
-        <Text accessibilityLiveRegion="polite" style={styles.title}>{recording ? time : finishing ? 'Kończenie dyktowania…' : busy ? 'Uruchamianie mikrofonu…' : 'Opowiedz, co zrobiłeś'}</Text>
-        <Text style={styles.caption}>{recording ? 'Mów po polsku. Wynik pojawia się na żywo. Dotknij mikrofonu, aby zakończyć.' : finishing ? 'Czekamy na końcowy wynik usługi systemowej.' : 'Dotknij mikrofonu i zacznij mówić po pojawieniu się licznika. Bez połączenia z OnSpace AI.'}</Text>
-        <Text style={styles.limit}>Maks. {voiceLimits.maxSeconds / 60} min · system może zakończyć po ciszy</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.title}>{checking ? 'Sprawdzanie dyktowania…' : !available ? 'Dyktowanie niedostępne' : recording ? time : finishing ? 'Kończenie dyktowania…' : busy ? 'Uruchamianie mikrofonu…' : 'Opowiedz, co zrobiłeś'}</Text>
+        <Text style={styles.caption}>{checking ? 'Sprawdzamy funkcje zainstalowanej wersji aplikacji.' : !available ? 'Możesz wpisać opis poniżej i dokończyć kosztorys. Instrukcja uruchomienia mowy znajduje się poniżej.' : recording ? 'Mów po polsku. Wynik pojawia się na żywo. Dotknij mikrofonu, aby zakończyć.' : finishing ? 'Czekamy na końcowy wynik usługi systemowej.' : 'Dotknij mikrofonu i zacznij mówić po pojawieniu się licznika. Bez połączenia z OnSpace AI.'}</Text>
+        {available ? <Text style={styles.limit}>Maks. {voiceLimits.maxSeconds / 60} min · system może zakończyć po ciszy</Text> : null}
         <View style={styles.example}>
           <Feather name="message-square" size={18} color={colors.subtle} />
           <Text style={styles.exampleText}>„Przegląd Octavii, wymiana przednich klocków i łożyska…”</Text>
         </View>
       </View>
+      {!available && !checking && unavailableReason ? <View accessibilityLiveRegion="polite"><Notice error>{unavailableReason}</Notice></View> : null}
       {liveTranscript ? <View style={styles.livePanel}><Text style={styles.liveLabel}>WYNIK NA ŻYWO · DO SPRAWDZENIA</Text><Text style={styles.liveText}>{liveTranscript}</Text></View> : null}
       <Notice>Rozpoznawanie korzysta z usługi telefonu lub przeglądarki, bez rozliczeń OnSpace AI. Usługa może wymagać internetu i przesyłać głos do Apple lub Google. Aplikacja nie zapisuje audio.</Notice>
-      <Text style={styles.compatibility}>Na telefonie potrzebna jest nowa kompilacja aplikacji z modułem mowy — samo odświeżenie podglądu nie wystarczy. W przeglądarce obsługa zależy od Web Speech API i uprawnień mikrofonu.</Text>
+      <Text style={styles.compatibility}>Moduł mowy jest dodawany przy kompilacji APK lub aplikacji iOS, nie przy odświeżeniu podglądu. W przeglądarce obsługa zależy od Web Speech API i uprawnień mikrofonu.</Text>
       {error ? <View accessibilityLiveRegion="polite"><Notice error>{error}</Notice></View> : null}
       {recognized ? <Notice icon="check-circle">Tekst został dopisany do opisu. Sprawdź nazwy części, liczby i ceny. Możesz poprawić tekst lub podyktować dalszą część.</Notice> : null}
       <Field
