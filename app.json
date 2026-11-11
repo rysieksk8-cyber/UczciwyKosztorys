@@ -37,6 +37,14 @@
       ],
       "expo-web-browser",
       [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Pozwól aplikacji Uczciwy Kosztorys używać mikrofonu do dyktowania opisu pracy.",
+          "speechRecognitionPermission": "Pozwól aplikacji Uczciwy Kosztorys rozpoznawać polską mowę przez usługę systemową.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ],
+      [
         "expo-av",
         {
           "microphonePermission": "Pozwól aplikacji Uczciwy Kosztorys nagrywać opis pracy do rozpoznania polskiej mowy."

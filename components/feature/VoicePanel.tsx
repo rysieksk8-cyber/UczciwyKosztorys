@@ -3,59 +3,60 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { voiceLimits } from '@/constants/voice';
-import { Button, Field, Notice } from '@/components/ui/Controls';
+import { Field, Notice } from '@/components/ui/Controls';
 
 interface VoicePanelProps {
   transcript: string;
   onChange: (value: string) => void;
   recording: boolean;
   busy: boolean;
-  transcribing: boolean;
+  finishing: boolean;
   seconds: number;
   onRecord: () => void;
   error: string;
-  canRetry: boolean;
-  onRetry: () => void;
   recognized: boolean;
+  liveTranscript: string;
 }
 
-export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recording, busy, transcribing, seconds, onRecord, error, canRetry, onRetry, recognized }: VoicePanelProps) {
+export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recording, busy, finishing, seconds, onRecord, error, recognized, liveTranscript }: VoicePanelProps) {
   const time = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
   return (
     <View style={styles.root}>
       <View style={styles.panel}>
-        <Text style={styles.kicker}>ONSPACE AI · JĘZYK POLSKI</Text>
+        <Text style={styles.kicker}>MOWA SYSTEMOWA · POLSKI</Text>
         <Pressable
           onPress={onRecord}
           disabled={busy}
           accessibilityRole="button"
           accessibilityState={{ disabled: busy, busy }}
-          accessibilityLabel={recording ? 'Zatrzymaj nagrywanie i rozpoznaj mowę' : transcribing ? 'Rozpoznawanie polskiej mowy' : 'Rozpocznij nagrywanie opisu pracy'}
+          accessibilityLabel={recording ? 'Zatrzymaj dyktowanie' : finishing ? 'Kończenie rozpoznawania mowy' : 'Rozpocznij dyktowanie opisu po polsku'}
           style={({ pressed }) => [styles.outer, recording ? styles.recording : null, busy ? styles.disabled : null, pressed ? styles.pressed : null]}
         >
           <View style={styles.mic}>
             {busy ? <ActivityIndicator color={colors.primaryDark} /> : <Feather name={recording ? 'square' : 'mic'} size={38} color={colors.primaryDark} />}
           </View>
         </Pressable>
-        <Text accessibilityLiveRegion="polite" style={styles.title}>{recording ? time : transcribing ? 'Rozpoznawanie mowy…' : busy ? 'Przygotowywanie nagrania…' : 'Opowiedz, co zrobiłeś'}</Text>
-        <Text style={styles.caption}>{recording ? 'Nagrywanie trwa. Dotknij, aby zatrzymać i rozpoznać tekst.' : transcribing ? 'OnSpace AI przepisuje Twoją wypowiedź po polsku. Poczekaj na wynik.' : 'Dotknij mikrofonu, nagraj opis i zatrzymaj. Tekst pojawi się poniżej.'}</Text>
-        <Text style={styles.limit}>Do {voiceLimits.maxSeconds / 60} minut · automatyczne zakończenie</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.title}>{recording ? time : finishing ? 'Kończenie dyktowania…' : busy ? 'Uruchamianie mikrofonu…' : 'Opowiedz, co zrobiłeś'}</Text>
+        <Text style={styles.caption}>{recording ? 'Mów po polsku. Wynik pojawia się na żywo. Dotknij mikrofonu, aby zakończyć.' : finishing ? 'Czekamy na końcowy wynik usługi systemowej.' : 'Dotknij mikrofonu i zacznij mówić po pojawieniu się licznika. Bez połączenia z OnSpace AI.'}</Text>
+        <Text style={styles.limit}>Maks. {voiceLimits.maxSeconds / 60} min · system może zakończyć po ciszy</Text>
         <View style={styles.example}>
           <Feather name="message-square" size={18} color={colors.subtle} />
           <Text style={styles.exampleText}>„Przegląd Octavii, wymiana przednich klocków i łożyska…”</Text>
         </View>
       </View>
-      <Notice>Nagranie jest wysyłane do OnSpace AI w celu rozpoznania mowy. Wymagany jest internet. Aplikacja nie zapisuje audio w historii kosztorysów.</Notice>
-      {error ? <View accessibilityLiveRegion="polite" style={styles.feedback}><Notice error>{error}</Notice>{canRetry ? <Button title="Ponów rozpoznawanie tego nagrania" icon="refresh-cw" secondary disabled={recording || busy} onPress={onRetry} /> : null}</View> : null}
-      {recognized && !error ? <Notice icon="check-circle">Mowa została rozpoznana. Sprawdź nazwy części, liczby i ceny. Możesz poprawić tekst przed przejściem dalej.</Notice> : null}
+      {liveTranscript ? <View style={styles.livePanel}><Text style={styles.liveLabel}>WYNIK NA ŻYWO · DO SPRAWDZENIA</Text><Text style={styles.liveText}>{liveTranscript}</Text></View> : null}
+      <Notice>Rozpoznawanie korzysta z usługi telefonu lub przeglądarki, bez rozliczeń OnSpace AI. Usługa może wymagać internetu i przesyłać głos do Apple lub Google. Aplikacja nie zapisuje audio.</Notice>
+      <Text style={styles.compatibility}>Na telefonie potrzebna jest nowa kompilacja aplikacji z modułem mowy — samo odświeżenie podglądu nie wystarczy. W przeglądarce obsługa zależy od Web Speech API i uprawnień mikrofonu.</Text>
+      {error ? <View accessibilityLiveRegion="polite"><Notice error>{error}</Notice></View> : null}
+      {recognized ? <Notice icon="check-circle">Tekst został dopisany do opisu. Sprawdź nazwy części, liczby i ceny. Możesz poprawić tekst lub podyktować dalszą część.</Notice> : null}
       <Field
         label="Opis pracy — sprawdź i popraw"
-        placeholder="Nagraj opis lub wpisz go ręcznie. Np. Wymiana oleju, 1 godzina robocizny. Olej, cena zakupu 100 zł."
+        placeholder="Podyktuj opis lub wpisz go ręcznie. Np. Wymiana oleju, 1 godzina robocizny. Olej, cena zakupu 100 zł."
         multiline
         editable={!recording && !busy}
         value={transcript}
         onChangeText={onChange}
-        hint="Tekst możesz dowolnie edytować. Kolejne nagranie dopisze tekst, nie usunie Twoich poprawek. Pozycje wyodrębni lokalny parser; nieznane ceny uzupełnisz ręcznie."
+        hint="Po zakończeniu dyktowania możesz dowolnie poprawić tekst. Kolejna wypowiedź zostanie dopisana, bez usuwania Twoich poprawek. Pozycje wyodrębni lokalny parser; nieznane ceny uzupełnisz ręcznie."
       />
     </View>
   );
@@ -75,5 +76,8 @@ const styles = StyleSheet.create({
   limit: { color: colors.subtle, fontSize: typography.small, textAlign: 'center' },
   example: { flexDirection: 'row', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, marginTop: spacing.sm },
   exampleText: { color: colors.subtle, fontSize: typography.body, fontStyle: 'italic', lineHeight: 26, flex: 1 },
-  feedback: { gap: spacing.md },
+  livePanel: { backgroundColor: colors.primaryDark, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  liveLabel: { color: colors.primary, fontSize: typography.small, fontWeight: '600', includeFontPadding: false },
+  liveText: { color: colors.text, fontSize: typography.body, lineHeight: 26, includeFontPadding: false },
+  compatibility: { color: colors.subtle, fontSize: typography.label, lineHeight: 24, includeFontPadding: false },
 });

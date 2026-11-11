@@ -1,124 +1,166 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Audio } from 'expo-av';
 import { voiceLimits } from '@/constants/voice';
-import { deleteVoiceFile, discardVoiceRecording, finishVoiceRecording, startVoiceRecording, transcribePolishRecording } from '@/services/speechRecognition';
+import { createSystemSpeechSession } from '@/services/systemSpeech';
+import { systemSpeechError } from '@/services/systemSpeechTypes';
+import type { SystemSpeechSession } from '@/services/systemSpeechTypes';
 
-type VoicePhase = 'idle' | 'starting' | 'recording' | 'stopping' | 'transcribing';
+type VoicePhase = 'idle' | 'starting' | 'recording' | 'finishing';
 interface VoiceOptions { onRecognized: (text: string) => void }
 
 export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
   const [phase, setPhase] = useState<VoicePhase>('idle');
   const [seconds, setSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState('');
-  const [hasPendingRecording, setHasPendingRecording] = useState(false);
   const [recognized, setRecognized] = useState(false);
-  const recorder = useRef<Audio.Recording | null>(null);
-  const pendingUri = useRef('');
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const phaseRef = useRef<VoicePhase>('idle');
+  const sessionRef = useRef<SystemSpeechSession | null>(null);
+  const finalText = useRef<string[]>([]);
+  const interimText = useRef('');
   const alive = useRef(true);
-  const locked = useRef(false);
   const callback = useRef(onRecognized);
+  const clock = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   callback.current = onRecognized;
+
+  const clearTimers = useCallback(() => {
+    if (clock.current) clearInterval(clock.current);
+    if (startTimeout.current) clearTimeout(startTimeout.current);
+    if (stopTimeout.current) clearTimeout(stopTimeout.current);
+    clock.current = null;
+    startTimeout.current = null;
+    stopTimeout.current = null;
+  }, []);
+
+  const updatePhase = useCallback((next: VoicePhase) => {
+    phaseRef.current = next;
+    if (alive.current) setPhase(next);
+  }, []);
+
+  const complete = useCallback((reportEmpty = true) => {
+    clearTimers();
+    const current = sessionRef.current;
+    sessionRef.current = null;
+    current?.dispose();
+    const text = [...finalText.current, interimText.current].filter(part => part.trim()).join(' ').trim();
+    finalText.current = [];
+    interimText.current = '';
+    if (alive.current) {
+      if (text) {
+        callback.current(text);
+        setRecognized(true);
+      } else if (reportEmpty) {
+        setVoiceError(systemSpeechError('no-speech'));
+      }
+      setLiveTranscript('');
+      updatePhase('idle');
+    }
+  }, [clearTimers, updatePhase]);
+
+  const stopRecording = useCallback(() => {
+    if (phaseRef.current !== 'recording' || !sessionRef.current) return;
+    updatePhase('finishing');
+    if (clock.current) clearInterval(clock.current);
+    clock.current = null;
+    // Some system services omit the end event. Preserve available text and release the UI.
+    stopTimeout.current = setTimeout(() => {
+      if (!alive.current || !sessionRef.current) return;
+      setVoiceError('System nie przesłał końcowego wyniku na czas. Zachowano dostępny tekst; sprawdź go przed przejściem dalej.');
+      complete(false);
+    }, 8000);
+    try { sessionRef.current.stop(); }
+    catch {
+      setVoiceError('System przerwał dyktowanie. Sprawdź zachowany tekst i spróbuj ponownie.');
+      complete(false);
+    }
+  }, [complete, updatePhase]);
 
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
-      if (recorder.current) {
-        void discardVoiceRecording(recorder.current);
-        recorder.current = null;
-      }
-      if (pendingUri.current) {
-        void deleteVoiceFile(pendingUri.current);
-        pendingUri.current = '';
-      }
+      clearTimers();
+      const current = sessionRef.current;
+      sessionRef.current = null;
+      current?.dispose();
     };
-  }, []);
-
-  const recognize = useCallback(async (uri: string) => {
-    if (alive.current) setPhase('transcribing');
-    try {
-      const text = await transcribePolishRecording(uri);
-      if (!alive.current) return;
-      callback.current(text);
-      setRecognized(true);
-      setHasPendingRecording(false);
-      pendingUri.current = '';
-      await deleteVoiceFile(uri);
-    } catch (reason) {
-      if (alive.current) {
-        setVoiceError(reason instanceof Error ? reason.message : 'Nie udało się rozpoznać mowy. Spróbuj ponownie lub wpisz opis.');
-        setHasPendingRecording(true);
-      }
-    }
-  }, []);
-
-  const stopRecording = useCallback(async () => {
-    if (locked.current || !recorder.current) return;
-    locked.current = true;
-    const current = recorder.current;
-    recorder.current = null;
-    current.setOnRecordingStatusUpdate(null);
-    if (alive.current) { setPhase('stopping'); setVoiceError(''); }
-    try {
-      const uri = await finishVoiceRecording(current);
-      if (!alive.current) { await deleteVoiceFile(uri); return; }
-      pendingUri.current = uri;
-      setHasPendingRecording(true);
-      await recognize(uri);
-    } catch (reason) {
-      await discardVoiceRecording(current);
-      if (alive.current) setVoiceError(reason instanceof Error ? reason.message : 'Nie udało się zapisać nagrania. Spróbuj ponownie.');
-    } finally {
-      locked.current = false;
-      if (alive.current) setPhase('idle');
-    }
-  }, [recognize]);
+  }, [clearTimers]);
 
   const toggleRecording = useCallback(async () => {
-    if (locked.current) return;
-    if (recorder.current) { await stopRecording(); return; }
-    locked.current = true;
-    setPhase('starting'); setVoiceError(''); setRecognized(false); setSeconds(0);
+    if (phaseRef.current === 'recording') { stopRecording(); return; }
+    if (phaseRef.current !== 'idle') return;
+    updatePhase('starting');
+    setVoiceError('');
+    setRecognized(false);
+    setSeconds(0);
+    setLiveTranscript('');
+    finalText.current = [];
+    interimText.current = '';
+    let current: SystemSpeechSession | null = null;
+    const isCurrent = () => alive.current && current !== null && sessionRef.current === current;
     try {
-      const current = await startVoiceRecording();
-      if (!alive.current) { await discardVoiceRecording(current); return; }
-      if (pendingUri.current) await deleteVoiceFile(pendingUri.current);
-      pendingUri.current = '';
-      setHasPendingRecording(false);
-      if (!alive.current) { await discardVoiceRecording(current); return; }
-      recorder.current = current;
-      current.setProgressUpdateInterval(250);
-      current.setOnRecordingStatusUpdate(status => {
-        if (!alive.current) return;
-        setSeconds(Math.min(voiceLimits.maxSeconds, Math.floor(status.durationMillis / 1000)));
-        if (status.durationMillis >= voiceLimits.maxSeconds * 1000) void stopRecording();
+      current = createSystemSpeechSession({
+        onStart: () => {
+          if (!isCurrent() || phaseRef.current !== 'starting') return;
+          if (startTimeout.current) clearTimeout(startTimeout.current);
+          startTimeout.current = null;
+          updatePhase('recording');
+          const startedAt = Date.now();
+          clock.current = setInterval(() => {
+            if (!isCurrent() || phaseRef.current !== 'recording') return;
+            const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+            setSeconds(Math.min(voiceLimits.maxSeconds, elapsed));
+            if (elapsed >= voiceLimits.maxSeconds) stopRecording();
+          }, 250);
+        },
+        onResult: (text, isFinal) => {
+          if (!isCurrent()) return;
+          if (isFinal) {
+            if (text.trim()) finalText.current.push(text.trim());
+            interimText.current = '';
+          } else {
+            interimText.current = text.trim();
+          }
+          setLiveTranscript([...finalText.current, interimText.current].filter(Boolean).join(' '));
+        },
+        onError: code => {
+          if (!isCurrent()) return;
+          const hasText = finalText.current.length > 0 || Boolean(interimText.current.trim());
+          if ((code === 'no-speech' || code === 'speech-timeout') && hasText) {
+            complete(false);
+            return;
+          }
+          setVoiceError(systemSpeechError(code));
+          complete(false);
+        },
+        onEnd: () => { if (isCurrent()) complete(); },
       });
-      setPhase('recording');
-    } catch (reason) {
-      if (alive.current) {
-        setPhase('idle');
-        setVoiceError(reason instanceof Error ? reason.message : 'Mikrofon jest niedostępny. Sprawdź uprawnienia lub wpisz opis ręcznie.');
+      sessionRef.current = current;
+      await current.start();
+      if (isCurrent() && phaseRef.current === 'starting') {
+        startTimeout.current = setTimeout(() => {
+          if (!isCurrent()) return;
+          setVoiceError('System nie uruchomił mikrofonu. Sprawdź uprawnienia oraz dostępność usługi mowy. W podglądzie przeglądarkowym funkcja może być blokowana.');
+          complete(false);
+        }, 20000);
       }
-    } finally {
-      locked.current = false;
+    } catch (reason) {
+      if (!alive.current) { current?.dispose(); return; }
+      if (current && sessionRef.current !== current) return;
+      setVoiceError(reason instanceof Error ? reason.message : systemSpeechError('unknown'));
+      complete(false);
     }
-  }, [stopRecording]);
-
-  const retryRecognition = useCallback(async () => {
-    if (locked.current || !pendingUri.current) return;
-    locked.current = true;
-    setVoiceError(''); setRecognized(false);
-    try { await recognize(pendingUri.current); }
-    finally {
-      locked.current = false;
-      if (alive.current) setPhase('idle');
-    }
-  }, [recognize]);
+  }, [complete, stopRecording, updatePhase]);
 
   return {
     recording: phase === 'recording',
-    recordBusy: phase === 'starting' || phase === 'stopping' || phase === 'transcribing',
-    transcribing: phase === 'transcribing',
-    seconds, voiceError, hasPendingRecording, recognized, toggleRecording, retryRecognition,
+    recordBusy: phase === 'starting' || phase === 'finishing',
+    finishing: phase === 'finishing',
+    seconds,
+    voiceError,
+    recognized,
+    liveTranscript,
+    toggleRecording,
   };
 }
