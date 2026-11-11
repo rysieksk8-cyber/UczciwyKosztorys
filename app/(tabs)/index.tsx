@@ -18,6 +18,7 @@ export function DashboardPage() {
   const columns = wide ? 2 : 1;
   const start = useCallback(() => router.push('/new'), [router]);
   const openSettings = useCallback(() => router.push('/(tabs)/settings'), [router]);
+  const planAppointment = useCallback(() => router.push('/appointment'), [router]);
   const hasFilters = Boolean(query.trim()) || filter !== 'all';
   const header = <View style={styles.header}>
     <View style={styles.brandRow}><View style={styles.brandIcon}><Feather name="tool" size={24} color={colors.primary} /></View><View style={styles.brandText}><Text style={styles.brand}>Kosztorys Mechanika</Text><Text style={styles.brandCaption}>Prosta wycena. Czytelny dokument.</Text></View>{settings.logo ? <Image source={{ uri: settings.logo }} style={styles.logo} contentFit="contain" transition={200} /> : null}</View>
@@ -31,6 +32,9 @@ export function DashboardPage() {
     {storageError ? <Notice error>{storageError}</Notice> : null}
     <Pressable onPress={openSettings} accessibilityRole="button" accessibilityLabel="Otwórz dane i stawki warsztatu" style={({ pressed }) => [styles.workshop, pressed ? styles.pressed : null]}>
       <Feather name="sliders" size={20} color={colors.primary} /><View style={styles.workshopText}><Text style={styles.workshopName}>{settings.name}</Text><Text style={styles.small}>{settings.name === 'Twój warsztat' ? 'Ustaw nazwę i stawki do PDF' : `${money(settings.hourlyRate)}/h · narzut ${settings.markup}%`}</Text></View><Feather name="chevron-right" size={20} color={colors.subtle} />
+    </Pressable>
+    <Pressable onPress={planAppointment} accessibilityRole="button" accessibilityLabel="Zaplanuj wizytę w Kalendarzu Google" style={({ pressed }) => [styles.workshop, pressed ? styles.pressed : null]}>
+      <Feather name="calendar" size={22} color={colors.primary} /><View style={styles.workshopText}><Text style={styles.workshopName}>Wizyty w Kalendarzu Google</Text><Text style={styles.small}>Podaj termin naprawy i zatwierdź zapis w Google.</Text></View><Feather name="chevron-right" size={20} color={colors.subtle} />
     </Pressable>
     {loaded && totalCount > 0 ? <View style={styles.overview}><View style={styles.stat}><Text style={styles.small}>TEN MIESIĄC</Text><Text style={styles.statValue}>{summary.count} <Text style={styles.statUnit}>kosztorysów</Text></Text></View><View style={styles.statAmount}><Text style={styles.small}>WARTOŚĆ BRUTTO</Text><Text style={styles.amount}>{money(summary.amount)}</Text></View></View> : null}
     <View style={styles.section}><Text style={styles.sectionTitle}>Twoje kosztorysy</Text><View style={styles.count}><Text style={styles.countText}>{hasFilters ? `${estimates.length} z ${totalCount}` : totalCount}</Text></View></View>

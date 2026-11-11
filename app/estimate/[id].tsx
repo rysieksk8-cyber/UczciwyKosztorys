@@ -19,6 +19,10 @@ export function EstimateDetailPage() {
   const { busy, uri, phone, setPhone, run } = useDocument(estimate);
   const router = useRouter();
   const { showAlert } = useAlert();
+  const planAppointment = useCallback(() => {
+    if (!estimate || busy) return;
+    router.push({ pathname: '/appointment', params: { estimateId: estimate.id } });
+  }, [estimate, busy, router]);
   const remove = useCallback(() => {
     if (!estimate || busy) return;
     showAlert('Usunąć kosztorys z historii?', `${estimate.vehicle}${estimate.plate ? ` · ${estimate.plate}` : ''}. Tej zmiany nie można cofnąć.`, [
@@ -43,6 +47,11 @@ export function EstimateDetailPage() {
         <Button title="Otwórz wiadomość WhatsApp" secondary icon="message-circle" loading={busy === 'whatsapp'} disabled={Boolean(busy)} onPress={() => run('whatsapp')} />
         <Notice>Wiadomość nie zawiera załącznika. Aby wysłać dokument, użyj przycisku „Udostępnij kosztorys PDF” i wybierz rozmowę z klientem.{Platform.OS === 'web' ? ' W przeglądarce dołącz zapisany PDF ręcznie.' : ''}</Notice>
       </Disclosure>
+    </View>
+    <View style={styles.sendPanel}>
+      <View style={styles.sendHeading}><Feather name="calendar" size={22} color={colors.primary} /><Text style={styles.sectionTitle}>Termin naprawy</Text></View>
+      <Text style={styles.description}>Przenieś pojazd, telefon klienta i zakres prac do formularza wizyty. Wybierz termin, a zapis zatwierdź w Google.</Text>
+      <Button title="Zaplanuj wizytę w Google" secondary icon="calendar" disabled={Boolean(busy)} onPress={planAppointment} />
     </View>
     <View style={styles.previewHeading}><Feather name="file-text" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Podgląd dokumentu</Text></View>
     <DocumentPreview estimate={estimate} />

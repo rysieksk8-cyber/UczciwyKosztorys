@@ -1,5 +1,19 @@
 # Kosztorys Mechanika — przegląd jakości
 
+## Wizyty w Kalendarzu Google — formularz do samodzielnego zatwierdzenia
+
+Dodano ekran `/appointment`, dostępny z karty „Wizyty w Kalendarzu Google” na stronie głównej i ze szczegółów kosztorysu. W drugim przypadku pojazd, rejestracja, telefon, numer dokumentu i nazwy prac uzupełniają formularz. Adres jest pobierany z ustawień warsztatu. Można podać klienta, datę, godzinę, czas trwania i uwagi; domyślnie proponowane jest jutro o 09:00. Wszystkie dane można poprawić.
+
+Po naciśnięciu „Otwórz formularz Google” aplikacja otwiera adres HTTPS `calendar.google.com/calendar/render?action=TEMPLATE` z zakodowanymi danymi wydarzenia. Użytkownik wybiera konto i kalendarz oraz sam naciska „Zapisz” w Google. Potrzebne są internet i zalogowanie do Google w przeglądarce; zależnie od telefonu link może obsłużyć przeglądarka lub aplikacja Google. Nie dodano Google OAuth, Calendar API, kluczy, backendowych zapisów ani nowych zależności natywnych. Nie zmieniono mowy, pluginu zgodności, PDF, historii ani klucza pamięci.
+
+To nie jest synchronizacja: aplikacja nie odczytuje wydarzeń, nie sprawdza kolizji, nie potwierdza zapisu, nie wysyła zaproszeń i nie przechowuje lokalnej historii wizyt. Otwarcie linku nie oznacza zapisania wydarzenia. Dane szkicu wizyty nie są utrwalane po zamknięciu ekranu. Informacje w linku trafiają do Google dopiero przy otwarciu; mogą być widoczne w historii przeglądarki. Po powrocie ekran przypomina o zatwierdzeniu i ryzyku ponownego utworzenia tej samej wizyty.
+
+Serwis waliduje wymagany pojazd, rzeczywiste daty, format 24-godzinny, przyszły termin, długości pól i czas trwania. Godzina jest interpretowana według strefy urządzenia, a do linku przekazywana jako UTC, z uwzględnieniem czasu letniego/zimowego. Nieistniejące godziny przy zmianie czasu są odrzucane. Przy jesiennej zmianie czasu dwukrotnie występująca godzina oznacza pierwsze wystąpienie; taki termin sprawdź bezpośrednio w Google. Nieudane otwarcie zachowuje formularz i wyświetla błąd.
+
+Dodano lokalny test `node scripts/check-calendar.cjs` (po eksporcie, korzysta z TypeScript projektu). Sprawdza walidację, rok przestępny, czas letni/zimowy dla Europe/Warsaw, przejście przez północ, kodowanie polskich znaków i znaków specjalnych, uzupełnianie danych i błąd otwierania przeglądarki. **Testów, TypeScript ani kompilacji APK nie uruchomiono w edytorze.** Test nie wysyła nic do Google.
+
+Ręcznie sprawdź: wejście ze strony głównej i ze szczegółów, zmianę danych, błędną datę i termin w przeszłości, poprawną godzinę w Google, wybór kalendarza, zatwierdzenie i anulowanie oraz powrót do aplikacji bez ponownego zapisu. Na Androidzie i iOS potrzebny jest osobny test otwarcia linku; Live Preview nie potwierdza działania na urządzeniu. Nowy ekran na zainstalowanym telefonie wymaga nowej kompilacji APK i instalacji aktualizacji bez odinstalowywania starej wersji.
+
 ## Dolny panel akcji — odstęp od nawigacji telefonu
 
 Zrzut ekranu pokazał systemowy pasek Androida nakładający się na przycisk przejścia do opisu. Wspólny komponent `Screen` zachowuje rzeczywisty dolny inset i dodaje do panelu jedynie brakujący odstęp do minimum 48 punktów na Androidzie i w podglądzie web (16 na iOS), poza zwykłym paddingiem panelu. To zabezpieczenie na wypadek, gdy host podglądu zwraca zerowy inset mimo widocznego paska systemowego. Nie dodaje drugiego pełnego insetu. Ustawienia w zakładce pozostają nad tab barem bez dodatkowej rezerwy.
