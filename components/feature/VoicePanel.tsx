@@ -38,7 +38,7 @@ export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recor
           style={({ pressed }) => [styles.outer, recording ? styles.recording : null, microphoneDisabled ? styles.disabled : null, pressed ? styles.pressed : null]}
         >
           <View style={styles.mic}>
-            {busy || checking ? <ActivityIndicator color={colors.primaryDark} /> : <Feather name={!available ? 'mic-off' : recording ? 'square' : 'mic'} size={38} color={colors.primaryDark} />}
+            {busy || checking ? <ActivityIndicator color={colors.onPrimary} /> : <Feather name={!available ? 'mic-off' : recording ? 'square' : 'mic'} size={38} color={colors.onPrimary} />}
           </View>
         </Pressable>
         <Text accessibilityLiveRegion="polite" style={styles.title}>{checking ? 'Sprawdzanie dyktowania…' : !available ? 'Dyktowanie niedostępne' : recording ? time : finishing ? 'Kończenie dyktowania…' : busy ? 'Uruchamianie mikrofonu…' : 'Opowiedz, co zrobiłeś'}</Text>

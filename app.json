@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "onspace-app",
+    "name": "Kosztorys Mechanika",
     "slug": "onspace-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "onspaceapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F4F7F2"
       },
       "edgeToEdgeEnabled": true,
       "permissions": ["android.permission.RECORD_AUDIO"]
@@ -32,22 +32,22 @@
           "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#F4F7F2"
         }
       ],
       "expo-web-browser",
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Pozwól aplikacji Uczciwy Kosztorys używać mikrofonu do dyktowania opisu pracy.",
-          "speechRecognitionPermission": "Pozwól aplikacji Uczciwy Kosztorys rozpoznawać polską mowę przez usługę systemową.",
+          "microphonePermission": "Pozwól aplikacji Kosztorys Mechanika używać mikrofonu do dyktowania opisu pracy.",
+          "speechRecognitionPermission": "Pozwól aplikacji Kosztorys Mechanika rozpoznawać polską mowę przez usługę systemową.",
           "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Pozwól aplikacji Uczciwy Kosztorys nagrywać opis pracy do rozpoznania polskiej mowy."
+          "microphonePermission": "Pozwól aplikacji Kosztorys Mechanika nagrywać opis pracy do rozpoznania polskiej mowy."
         }
       ]
     ],
