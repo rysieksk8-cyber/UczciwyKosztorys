@@ -1,5 +1,11 @@
 # Kosztorys Mechanika — przegląd jakości
 
+## Dolny panel akcji — odstęp od nawigacji telefonu
+
+Zrzut ekranu pokazał systemowy pasek Androida nakładający się na przycisk przejścia do opisu. Wspólny komponent `Screen` zachowuje rzeczywisty dolny inset i dodaje do panelu jedynie brakujący odstęp do minimum 48 punktów na Androidzie i w podglądzie web (16 na iOS), poza zwykłym paddingiem panelu. To zabezpieczenie na wypadek, gdy host podglądu zwraca zerowy inset mimo widocznego paska systemowego. Nie dodaje drugiego pełnego insetu. Ustawienia w zakładce pozostają nad tab barem bez dodatkowej rezerwy.
+
+Zmiana dotyczy układu, nie zależności mowy ani kompilacji APK. Nie uruchomiono testów na urządzeniu. Do ręcznego sprawdzenia: przycisk w każdym kroku nowego kosztorysu, także z błędem walidacji; Android z trzema przyciskami i gestami; obrót telefonu; otwieranie i zamykanie klawiatury; zapis ustawień nad paskiem zakładek. Zainstalowane APK wymaga nowej kompilacji, aby otrzymać tę zmianę.
+
 ## Aktualne obejście: dyktowanie klawiaturą zamiast modułu natywnego
 
 Po uzyskaniu zgody użytkownika włączono tymczasowy tryb `expo.extra.voiceInputMode: "keyboard"`. Poniższe starsze sekcje opisują wcześniejsze etapy; aktualny przepływ dyktowania opisuje ta sekcja.
