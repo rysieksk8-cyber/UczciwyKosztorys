@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useAlert } from '@/template';
 import { Estimate, EstimateItem, ItemCategory, itemValidationError, newItem, parseDescription, sellingPrice, VehicleType } from '@/services/estimates';
+import { itemNeedsAttention } from '@/services/estimateInsights';
 import { useWorkshop } from './useWorkshop';
 import { useVoiceRecognition } from './useVoiceRecognition';
 export function useEstimateDraft() {
@@ -15,6 +16,7 @@ export function useEstimateDraft() {
   const [phone, setPhone] = useState('48');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({ vehicle: '', phone: '' });
   const savingRef = useRef(false);
   const savedEstimate = useRef<Estimate | null>(null);
   const parsedText = useRef<string | null>(null);
@@ -36,6 +38,12 @@ export function useEstimateDraft() {
   const next = useCallback(() => {
     if (savingRef.current) return;
     setError('');
+    if (step === 1 && !vehicle.trim()) {
+      setFieldErrors(previous => ({ ...previous, vehicle: 'Wpisz markę i model pojazdu.' }));
+      setError('Uzupełnij pojazd, żeby łatwo odnaleźć kosztorys.');
+      return;
+    }
+    if (step === 1) setFieldErrors(previous => ({ ...previous, vehicle: '' }));
     if (step === 2) {
       if (recording || recordBusy) { setError('Zatrzymaj dyktowanie i poczekaj na zakończenie rozpoznawania.'); return; }
       if (!transcript.trim()) { setError('Podyktuj opis pracy albo wpisz go ręcznie.'); return; }
@@ -55,8 +63,16 @@ export function useEstimateDraft() {
       if (invalid) { setError(invalid); return; }
     }
     setStep(value => Math.min(4, value + 1));
-  }, [step, transcript, settings, items, recording, recordBusy, showAlert]);
+  }, [step, vehicle, transcript, settings, items, recording, recordBusy, showAlert]);
   const back = useCallback(() => { if (savingRef.current) return; setError(''); setStep(value => Math.max(1, value - 1)); }, []);
+  const goToStep = useCallback((target: number) => {
+    if (savingRef.current || recording || recordBusy || target < 1 || target >= step) return;
+    setError('');
+    setStep(target);
+  }, [step, recording, recordBusy]);
+  const missingCount = useMemo(() => items.filter(itemNeedsAttention).length, [items]);
+  const changeVehicle = useCallback((value: string) => { setVehicle(value); setFieldErrors(previous => ({ ...previous, vehicle: '' })); setError(''); }, []);
+  const changePhone = useCallback((value: string) => { setPhone(value); setFieldErrors(previous => ({ ...previous, phone: '' })); setError(''); }, []);
   const save = useCallback(async (): Promise<Estimate | null> => {
     if (savedEstimate.current) return savedEstimate.current;
     if (savingRef.current) return null;
@@ -64,9 +80,14 @@ export function useEstimateDraft() {
     if (step !== 4) return null;
     const invalid = itemValidationError(items);
     if (invalid) { setError(invalid); return null; }
-    if (!vehicle.trim()) { setError('Uzupełnij markę i model pojazdu.'); return null; }
+    if (!vehicle.trim()) { setFieldErrors(previous => ({ ...previous, vehicle: 'Wpisz markę i model pojazdu.' })); setStep(1); setError('Uzupełnij markę i model pojazdu.'); return null; }
     const digits = phone.replace(/\D/g, '');
-    if (digits && digits !== '48' && (digits.length < 9 || digits.length > 15)) { setError('Podaj numer klienta z kodem kraju lub pozostaw pole puste.'); return null; }
+    if (digits && digits !== '48' && (digits.length < 9 || digits.length > 15)) {
+      setFieldErrors(previous => ({ ...previous, phone: 'Podaj numer z kodem kraju, np. 48 500 600 700, lub pozostaw pole puste.' }));
+      setError('Sprawdź numer telefonu klienta.');
+      return null;
+    }
+    setFieldErrors({ vehicle: '', phone: '' });
     savingRef.current = true;
     setSaving(true);
     setError('');
@@ -79,5 +100,5 @@ export function useEstimateDraft() {
       return null;
     } finally { savingRef.current = false; setSaving(false); }
   }, [loaded, writable, step, vehicle, vehicleType, plate, phone, transcript, items, addEstimate]);
-  return { step, vehicleType, setVehicleType, transcript, setTranscript, items, updateItem, addItem, removeItem, vehicle, setVehicle, plate, setPlate, phone, setPhone, error, saving, ...voice, next, back, save, settings };
+  return { step, vehicleType, setVehicleType, transcript, setTranscript, items, updateItem, addItem, removeItem, vehicle, setVehicle: changeVehicle, plate, setPlate, phone, setPhone: changePhone, error, fieldErrors, missingCount, saving, ...voice, next, back, goToStep, save, settings };
 }

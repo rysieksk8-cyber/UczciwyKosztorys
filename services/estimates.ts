@@ -25,8 +25,15 @@ export function decimalNumber(text: string): number | null {
 }
 export function itemValidationError(items: EstimateItem[]): string {
   if (!items.length) return 'Dodaj przynajmniej jedną pozycję.';
-  if (items.some(item => !item.name.trim() || !['labor', 'parts', 'materials'].includes(item.category) || !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unitPrice) || item.unitPrice <= 0 || !Number.isFinite(item.purchasePrice) || item.purchasePrice < 0 || !Number.isFinite(item.markup) || item.markup < 0 || item.markup > 1000)) {
-    return 'Uzupełnij nazwy, dodatnie ilości i ceny oraz narzut od 0 do 1000%.';
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    const prefix = `Pozycja ${index + 1}: `;
+    if (!item.name.trim()) return `${prefix}wpisz nazwę pracy lub części.`;
+    if (!['labor', 'parts', 'materials'].includes(item.category)) return `${prefix}wybierz rodzaj pozycji.`;
+    if (!Number.isFinite(item.quantity) || item.quantity <= 0) return `${prefix}podaj ilość lub czas większy od zera.`;
+    if (!Number.isFinite(item.unitPrice) || item.unitPrice <= 0) return `${prefix}uzupełnij cenę brutto większą od zera.`;
+    if (!Number.isFinite(item.purchasePrice) || item.purchasePrice < 0) return `${prefix}cena zakupu nie może być ujemna.`;
+    if (!Number.isFinite(item.markup) || item.markup < 0 || item.markup > 1000) return `${prefix}podaj narzut od 0 do 1000%.`;
   }
   return Number.isFinite(total(items)) ? '' : 'Kwota kosztorysu jest zbyt duża.';
 }

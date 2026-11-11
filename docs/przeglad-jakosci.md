@@ -53,6 +53,29 @@ Następnie wykonaj jedną czystą kompilację Android w swoim środowisku. `npx 
 6. Na telefonie wygeneruj PDF z polskimi znakami i logo; porównaj sumę z ekranem. Otwórz wiadomość WhatsApp, a PDF dołącz w osobnym systemowym oknie udostępniania. Link `wa.me` sam nie dołącza pliku.
 7. Sprawdź szerokość 320 punktów i obrót telefonu. Na iOS wykonaj osobny test: wynik Android nie potwierdza działania iOS.
 
+## Usprawnienia intuicyjności — bieżąca wersja
+
+Cel interfejsu: mechanik podczas obsługi naprawy szybko identyfikuje pojazd, sprawdza koszty i przekazuje czytelny dokument klientowi; interfejs ma dawać poczucie kontroli, spokoju i przejrzystości. Zachowano matowe, jasne powierzchnie, warsztatową zieleń oraz wyróżnione rejestracje i kwoty brutto.
+
+- Główny przycisk tworzenia wyceny jest nad statystykami. Dane warsztatu otwierają ustawienia bez szukania odpowiedniej zakładki.
+- Marka, model i opcjonalna rejestracja są podawane w pierwszym kroku. Następne ekrany przypominają, którego pojazdu dotyczy szkic.
+- Kroki mają jasne nazwy: Pojazd → Opis → Ceny → Zapis. Zakończone kroki umożliwiają powrót bez usuwania pozycji; ochrona ręcznych cen przy zmianie opisu nadal obowiązuje.
+- Zamknięcie szkicu przyciskiem w nagłówku lub systemowym przyciskiem Wstecz na Androidzie wymaga potwierdzenia, jeżeli szkic ma dane. Gest cofania iOS jest wyłączony na tym ekranie. Nie jest to automatyczny zapis szkicu i nie chroni przed zamknięciem procesu aplikacji ani nawigacją przyciskami przeglądarki.
+- Dyktowanie nadal działa przez przycisk mikrofonu w aplikacji. Dodano jednoznaczny wybór pisania ręcznego i rozwijaną pomoc. Nie zmieniono modułu natywnego ani nie przywrócono OnSpace AI.
+- Pola mają widoczny stan fokusu; błędy nazw, ilości i cen są przy odpowiednich polach. Pozycje wymagające uzupełnienia są oznaczone także tekstem. Dodawanie pracy, części i materiału ma osobne przyciski.
+- Podsumowanie przed zapisem pokazuje osobno robociznę, części, materiały oraz sumę brutto. Telefon klienta pozostaje opcjonalny.
+- Wyszukiwanie obsługuje markę/model, rejestrację i numer kosztorysu, także bez polskich znaków. Dostępne są czyszczenie zapytania i wyzerowanie filtrów. Na szerokich ekranach lista ma dwie kolumny.
+- Ustawienia pokazują na żywo przykładową cenę godziny pracy i części kupionej za 100 zł. Widać, czy zmiany są niezapisane. Dodatkowe dane i pomoc są rozwijane.
+- Na telefonie „Udostępnij kosztorys PDF” przygotowuje plik i otwiera systemowe udostępnianie w jednym działaniu. Nie wysyła dokumentu samodzielnie. Wiadomość WhatsApp jest oddzielną, opcjonalną funkcją bez załącznika. Przeglądarka nadal korzysta z okna drukowania.
+
+### Kontrole dodane i testy do wykonania
+
+Rozszerzono `scripts/check-core.cjs` o wyszukiwanie z polskimi znakami, rejestracje ze spacjami, numery dokumentów, podsumowania kategorii i oznaczanie brakujących danych. Testów nie wykonano w edytorze; nie ma tu terminala ani urządzenia. Sprawdzenie typów wymaga `npx tsc --noEmit` w wyeksportowanym projekcie.
+
+W podglądzie można ręcznie sprawdzić: pojazd wymagany w pierwszym kroku; wpisany opis → poprawa pozycji → podsumowanie; pustą cenę i komunikat z numerem pozycji; cofnięcie do wcześniejszego kroku bez utraty cen; potwierdzenie zamknięcia szkicu; wyszukiwanie i czyszczenie filtrów; zmieniane na żywo przykłady stawek. Na APK trzeba osobno sprawdzić mikrofon, systemowe Wstecz, udostępnianie PDF i przejście do WhatsApp.
+
+Te zmiany nie rozwiązują blokera kompilacji `expo-speech-recognition` i nie są potwierdzeniem działania APK. Nie zmieniono chronionych zależności, klucza pamięci ani istniejących danych.
+
 ## Bez kosztów AI w obecnym przepływie
 
 Dyktowanie wywołuje usługę systemową, a wyodrębnianie pozycji jest lokalne. Przejrzany przepływ aplikacji nie wywołuje starego serwisu OnSpace AI. Jego pliki i funkcję backendową pozostawiono bez kasowania. Nie wykonywano płatnych prób transkrypcji. Usługa telefonu/przeglądarki może wymagać internetu i nie gwarantuje pracy offline.

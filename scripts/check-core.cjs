@@ -24,6 +24,18 @@ loaded.require = name => name === '@react-native-async-storage/async-storage' ? 
 loaded._compile(code, file);
 const core = loaded.exports;
 
+const insightsFile = path.join(__dirname, '../services/estimateInsights.ts');
+const insightsCode = ts.transpileModule(fs.readFileSync(insightsFile, 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+}).outputText;
+const insightsModule = new Module(insightsFile, module);
+insightsModule.filename = insightsFile;
+insightsModule.paths = Module._nodeModulePaths(path.dirname(insightsFile));
+const insightsRequire = insightsModule.require.bind(insightsModule);
+insightsModule.require = name => name === './estimates' ? core : insightsRequire(name);
+insightsModule._compile(insightsCode, insightsFile);
+const insights = insightsModule.exports;
+
 async function main() {
   const settings = core.defaultSettings;
   assert.equal(core.decimalNumber('1,5'), 1.5);
@@ -61,6 +73,22 @@ async function main() {
   const empty = await core.loadData();
   assert.deepEqual(empty.estimates, []);
   const estimate = { id: 'test', number: 'TEST/1', createdAt: new Date().toISOString(), vehicleType: 'car', vehicle: 'Octavia', plate: 'WWA12345', phone: '', transcript: '', items: work, workshop: settings };
+  const searchable = { ...estimate, vehicle: 'Škoda Octavia', plate: 'WWA 12345', number: 'UK/2026/001' };
+  assert.equal(insights.normalizeSearch('ŁÓDŹ'), 'lodz');
+  assert.equal(insights.matchesEstimate(searchable, ''), true);
+  assert.equal(insights.matchesEstimate(searchable, 'skoda'), true);
+  assert.equal(insights.matchesEstimate(searchable, 'skoda wwa12345'), true);
+  assert.equal(insights.matchesEstimate(searchable, 'WWA 12345'), true);
+  assert.equal(insights.matchesEstimate(searchable, 'UK/2026/001'), true);
+  assert.equal(insights.matchesEstimate(searchable, 'nieznany pojazd'), false);
+  assert.deepEqual(insights.categoryTotals(work), { labor: 225, parts: 125.63, materials: 0 });
+  assert.deepEqual(insights.categoryTotals([]), { labor: 0, parts: 0, materials: 0 });
+  assert.equal(insights.itemNeedsAttention(work[0]), false);
+  assert.equal(insights.itemNeedsAttention({ ...work[0], name: '' }), true);
+  assert.equal(insights.itemNeedsAttention({ ...work[0], unitPrice: 0 }), true);
+  assert.equal(insights.itemNeedsAttention({ ...work[0], quantity: 0 }), true);
+  assert.equal(insights.itemNeedsAttention({ ...work[0], markup: 1001 }), true);
+  assert.match(core.itemValidationError([{ ...work[0], name: '' }]), /^Pozycja 1:/);
   await core.saveData({ estimates: [estimate], settings });
   assert.deepEqual((await core.loadData()).estimates[0], estimate);
   const key = 'uczciwy-kosztorys-v1';
@@ -69,7 +97,7 @@ async function main() {
     await assert.rejects(core.loadData());
     assert.equal(store.get(key), raw, 'Loading must not overwrite unreadable history');
   }
-  console.log('OK: parsing, decimal inputs, pricing, rounding, validation and storage checks.');
+  console.log('OK: parsing, decimal inputs, pricing, rounding, validation, search, category totals and storage checks.');
   console.log('These checks do not verify React UI, native speech or Android/iOS compilation.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

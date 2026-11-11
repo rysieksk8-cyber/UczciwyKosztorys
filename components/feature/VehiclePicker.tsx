@@ -1,9 +1,24 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { vehicleLabels, VehicleType } from '@/services/estimates';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 interface VehiclePickerProps { value: VehicleType; onChange: (value: VehicleType) => void }
 const icons = { car: 'car-outline', motorcycle: 'motorbike', truck: 'truck-outline' } as const;
-export const VehiclePicker = memo(function VehiclePicker({ value, onChange }: VehiclePickerProps) { return <View style={styles.list}>{(['car', 'motorcycle', 'truck'] as VehicleType[]).map(type => { const selected = type === value; return <Pressable key={type} onPress={() => onChange(type)} accessibilityRole="radio" accessibilityState={{ selected }} style={({ pressed }) => [styles.card, selected ? styles.selected : null, pressed ? { opacity: 0.7 } : null]}><View style={[styles.icon, selected ? { backgroundColor: colors.primaryDark } : null]}><MaterialCommunityIcons name={icons[type]} size={38} color={selected ? colors.primary : colors.subtle} /></View><View style={styles.text}><Text style={styles.title}>{vehicleLabels[type]}</Text><Text style={styles.subtitle}>{type === 'car' ? 'Osobowe i dostawcze' : type === 'motorcycle' ? 'Motocykle i skutery' : 'Pojazdy ciężarowe'}</Text></View><Feather name={selected ? 'check-circle' : 'circle'} size={23} color={selected ? colors.primary : colors.border} /></Pressable>; })}</View>; });
-const styles = StyleSheet.create({ list: { gap: spacing.md }, card: { minHeight: 108, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md }, selected: { borderColor: colors.primary }, icon: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, backgroundColor: colors.raised }, text: { flex: 1, gap: spacing.sm }, title: { fontSize: typography.section, fontWeight: '600', color: colors.text }, subtitle: { color: colors.subtle, fontSize: typography.label } });
+export const VehiclePicker = memo(function VehiclePicker({ value, onChange }: VehiclePickerProps) {
+  return <View style={styles.root}><Text style={styles.label}>Rodzaj pojazdu</Text><View style={styles.options}>{(['car', 'motorcycle', 'truck'] as VehicleType[]).map(type => {
+    const selected = type === value;
+    return <Pressable key={type} onPress={() => onChange(type)} accessibilityLabel={vehicleLabels[type]} accessibilityRole="radio" accessibilityState={{ selected }} style={({ pressed }) => [styles.card, selected ? styles.selected : null, pressed ? styles.pressed : null]}>
+      <MaterialCommunityIcons name={icons[type]} size={32} color={selected ? colors.primary : colors.subtle} />
+      <Text style={[styles.title, selected ? styles.selectedTitle : null]}>{vehicleLabels[type]}</Text>
+      <MaterialCommunityIcons name={selected ? 'check-circle-outline' : 'circle-outline'} size={18} color={selected ? colors.primary : colors.subtle} />
+    </Pressable>;
+  })}</View></View>;
+});
+const styles = StyleSheet.create({
+  root: { gap: spacing.sm }, label: { color: colors.subtle, fontSize: typography.label, fontWeight: '500' },
+  options: { flexDirection: 'row', gap: spacing.sm },
+  card: { minHeight: 112, flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.sm },
+  selected: { borderColor: colors.primary, backgroundColor: colors.primaryDark }, pressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
+  title: { fontSize: typography.label, fontWeight: '600', color: colors.subtle, textAlign: 'center', includeFontPadding: false }, selectedTitle: { color: colors.primary },
+});

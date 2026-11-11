@@ -42,5 +42,9 @@ export function useSettings() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Nie udało się zapisać ustawień. Spróbuj ponownie.'); }
     finally { working.current = false; setSaving(false); }
   }, [draft, rate, markup, loaded, writable, updateSettings]);
-  return { draft, rate, markup, error: error || storageError, saved, saving, loaded: loaded && writable, change, changeRate, changeMarkup, pickLogo, save };
+  const dirty = draft.name !== settings.name || draft.address !== settings.address || draft.phone !== settings.phone || draft.logo !== settings.logo || rate !== String(settings.hourlyRate) || markup !== String(settings.markup);
+  const previewRate = decimalNumber(rate);
+  const previewMarkup = decimalNumber(markup);
+  const previewPartPrice = previewMarkup !== null && previewMarkup <= 1000 ? Math.round(100 * (1 + previewMarkup / 100) * 100) / 100 : null;
+  return { draft, rate, markup, error: error || storageError, saved, saving, dirty, previewRate, previewPartPrice, loaded: loaded && writable, change, changeRate, changeMarkup, pickLogo, save };
 }
