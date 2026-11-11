@@ -1,0 +1,2 @@
+[functions.transcribe-polish]
+verify_jwt = false
