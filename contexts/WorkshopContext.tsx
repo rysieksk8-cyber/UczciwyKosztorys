@@ -1,22 +1,84 @@
 import { createContext, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { defaultSettings, Estimate, loadData, makeId, saveData, StoredData, WorkshopSettings } from '@/services/estimates';
-interface WorkshopContextValue { estimates: Estimate[]; settings: WorkshopSettings; loaded: boolean; storageError: string; addEstimate: (data: Omit<Estimate, 'id' | 'number' | 'createdAt' | 'workshop'>) => Estimate; deleteEstimate: (id: string) => void; updateSettings: (settings: WorkshopSettings) => void }
+import { defaultSettings, Estimate, itemValidationError, loadData, makeId, saveData, StoredData, WorkshopSettings } from '@/services/estimates';
+
+type EstimateDraft = Omit<Estimate, 'id' | 'number' | 'createdAt' | 'workshop'>;
+interface WorkshopContextValue {
+  estimates: Estimate[];
+  settings: WorkshopSettings;
+  loaded: boolean;
+  writable: boolean;
+  storageError: string;
+  addEstimate: (data: EstimateDraft) => Promise<Estimate>;
+  deleteEstimate: (id: string) => Promise<void>;
+  updateSettings: (settings: WorkshopSettings) => Promise<void>;
+}
 export const WorkshopContext = createContext<WorkshopContextValue | undefined>(undefined);
 export function WorkshopProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<StoredData>({ estimates: [], settings: defaultSettings });
+  const [data, setData] = useState<StoredData>({ estimates: [], settings: { ...defaultSettings } });
   const [loaded, setLoaded] = useState(false);
+  const [writable, setWritable] = useState(false);
   const [storageError, setStorageError] = useState('');
-  const queue = useRef(Promise.resolve());
+  const dataRef = useRef(data);
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const storageReady = useRef(false);
-  useEffect(() => { let active = true; loadData().then(result => { if (active) { storageReady.current = true; setData(result); setLoaded(true); } }).catch(() => { if (active) { setStorageError('Nie udało się odczytać pamięci. Nowe dane pozostaną w tej sesji, aby nie nadpisać zapisów.'); setLoaded(true); } }); return () => { active = false; }; }, []);
-  useEffect(() => { if (!loaded || !storageReady.current) return; queue.current = queue.current.then(() => saveData(data)).then(() => setStorageError('')).catch(() => { setStorageError('Nie udało się zapisać danych na urządzeniu. Nie zamykaj aplikacji.'); }); }, [data, loaded]);
-  const addEstimate = useCallback((draft: Omit<Estimate, 'id' | 'number' | 'createdAt' | 'workshop'>) => {
+  const alive = useRef(false);
+
+  useEffect(() => {
+    alive.current = true;
+    let active = true;
+    void loadData().then(result => {
+      if (!active) return;
+      dataRef.current = result;
+      storageReady.current = true;
+      setData(result);
+      setWritable(true);
+      setLoaded(true);
+    }).catch(() => {
+      if (!active) return;
+      // Never replace unreadable history with an empty initial state.
+      setStorageError('Nie udało się odczytać historii. Zapis jest wstrzymany, aby jej nie nadpisać. Uruchom aplikację ponownie; nie usuwaj jej danych.');
+      setLoaded(true);
+    });
+    return () => { active = false; alive.current = false; };
+  }, []);
+
+  const persist = useCallback((change: (previous: StoredData) => StoredData): Promise<void> => {
+    if (!storageReady.current) return Promise.reject(new Error('Pamięć nie jest gotowa. Nie nadpisano historii; uruchom aplikację ponownie.'));
+    const operation = queue.current.then(async () => {
+      const next = change(dataRef.current);
+      try {
+        await saveData(next);
+      } catch {
+        const message = 'Nie udało się zapisać zmiany na urządzeniu. Poprzednia historia pozostaje bez zmian. Sprawdź wolne miejsce i ponów zapis.';
+        if (alive.current) setStorageError(message);
+        throw new Error(message);
+      }
+      dataRef.current = next;
+      if (alive.current) { setData(next); setStorageError(''); }
+    });
+    // A failed write must not poison later retries. The caller still receives the rejection.
+    queue.current = operation.catch(() => undefined);
+    return operation;
+  }, []);
+
+  const addEstimate = useCallback(async (draft: EstimateDraft): Promise<Estimate> => {
+    const invalid = itemValidationError(draft.items);
+    if (invalid) throw new Error(invalid);
+    if (!draft.vehicle.trim()) throw new Error('Uzupełnij markę i model pojazdu.');
     const date = new Date();
-    const estimate: Estimate = { ...draft, id: makeId(), createdAt: date.toISOString(), number: `UK/${date.getFullYear()}/${String(data.estimates.length + 1).padStart(3, '0')}-${date.getTime().toString().slice(-4)}`, workshop: { ...data.settings } };
-    setData(previous => ({ ...previous, estimates: [estimate, ...previous.estimates] }));
+    let estimate: Estimate | null = null;
+    await persist(previous => {
+      estimate = { ...draft, items: draft.items.map(item => ({ ...item })), id: makeId(), createdAt: date.toISOString(), number: `UK/${date.getFullYear()}/${String(previous.estimates.length + 1).padStart(3, '0')}-${date.getTime().toString().slice(-4)}`, workshop: { ...previous.settings } };
+      return { ...previous, estimates: [estimate, ...previous.estimates] };
+    });
+    if (!estimate) throw new Error('Nie utworzono kosztorysu.');
     return estimate;
-  }, [data.estimates.length, data.settings]);
-  const deleteEstimate = useCallback((id: string) => setData(previous => ({ ...previous, estimates: previous.estimates.filter(item => item.id !== id) })), []);
-  const updateSettings = useCallback((settings: WorkshopSettings) => setData(previous => ({ ...previous, settings })), []);
-  return <WorkshopContext.Provider value={{ ...data, loaded, storageError, addEstimate, deleteEstimate, updateSettings }}>{children}</WorkshopContext.Provider>;
+  }, [persist]);
+  const deleteEstimate = useCallback(async (id: string) => {
+    await persist(previous => ({ ...previous, estimates: previous.estimates.filter(item => item.id !== id) }));
+  }, [persist]);
+  const updateSettings = useCallback(async (settings: WorkshopSettings) => {
+    await persist(previous => ({ ...previous, settings: { ...settings } }));
+  }, [persist]);
+  return <WorkshopContext.Provider value={{ ...data, loaded, writable, storageError, addEstimate, deleteEstimate, updateSettings }}>{children}</WorkshopContext.Provider>;
 }

@@ -3,7 +3,7 @@
     "name": "Kosztorys Mechanika",
     "slug": "onspace-app",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/logo.png",
     "scheme": "onspaceapp",
     "userInterfaceStyle": "light",
@@ -25,6 +25,7 @@
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
+      "./plugins/withSpeechCompatibility",
       "expo-router",
       [
         "expo-splash-screen",

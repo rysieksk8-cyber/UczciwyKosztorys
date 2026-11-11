@@ -87,6 +87,7 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
     // Recheck if the user enables the phone's speech service in device settings.
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active' && phaseRef.current === 'idle') refreshAvailability();
+      if (state !== 'active' && phaseRef.current !== 'idle') complete(false);
     });
     return () => {
       alive.current = false;
@@ -96,7 +97,7 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
       sessionRef.current = null;
       current?.dispose();
     };
-  }, [clearTimers]);
+  }, [clearTimers, complete]);
 
   const toggleRecording = useCallback(async () => {
     if (phaseRef.current === 'recording') { stopRecording(); return; }
@@ -154,14 +155,13 @@ export function useVoiceRecognition({ onRecognized }: VoiceOptions) {
         onEnd: () => { if (isCurrent()) complete(); },
       });
       sessionRef.current = current;
+      // Install the watchdog before waiting for permissions/start, which can hang.
+      startTimeout.current = setTimeout(() => {
+        if (!isCurrent() || phaseRef.current !== 'starting') return;
+        setVoiceError('Nie uruchomiono dyktowania na czas. Zezwól na mikrofon i rozpoznawanie mowy, a następnie spróbuj ponownie. Podgląd przeglądarkowy może blokować tę funkcję.');
+        complete(false);
+      }, 30000);
       await current.start();
-      if (isCurrent() && phaseRef.current === 'starting') {
-        startTimeout.current = setTimeout(() => {
-          if (!isCurrent()) return;
-          setVoiceError('System nie uruchomił mikrofonu. Sprawdź uprawnienia oraz dostępność usługi mowy. W podglądzie przeglądarkowym funkcja może być blokowana.');
-          complete(false);
-        }, 20000);
-      }
     } catch (reason) {
       if (!alive.current) { current?.dispose(); return; }
       if (current && sessionRef.current !== current) return;

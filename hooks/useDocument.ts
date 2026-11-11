@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { useAlert } from '@/template';
 import { createPdf, openWhatsApp, sharePdf } from '@/services/documents';
 import { Estimate } from '@/services/estimates';
@@ -13,6 +14,7 @@ export function useDocument(estimate: Estimate | undefined) {
     if (!estimate || working.current) return;
     working.current = true; setBusy(action);
     try {
+      if (action === 'share' && Platform.OS === 'web') throw new Error('W przeglądarce użyj „Drukuj / zapisz jako PDF”. Udostępnianie pliku działa na telefonie.');
       if (action === 'whatsapp') await openWhatsApp({ ...estimate, phone });
       else { const file = uri || await createPdf(estimate); if (file) setUri(file); if (action === 'share') await sharePdf(file); }
     } catch (reason) { showAlert('Dokument', reason instanceof Error ? reason.message : 'Nie udało się przygotować dokumentu. Spróbuj ponownie.'); }
