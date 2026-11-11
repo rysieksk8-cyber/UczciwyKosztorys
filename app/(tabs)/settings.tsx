@@ -7,19 +7,20 @@ import { Disclosure } from '@/components/ui/Disclosure';
 import { useSettings } from '@/hooks/useSettings';
 import { money } from '@/services/estimates';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { paperStyles } from '@/constants/styles';
 
 export function SettingsPage() {
   const { draft, rate, markup, error, saved, saving, loaded, dirty, previewRate, previewPartPrice, change, changeRate, changeMarkup, pickLogo, save } = useSettings();
-  const footer = <View style={styles.footer}>{error ? <Notice error>{error}</Notice> : null}<Text accessibilityLiveRegion="polite" style={styles.footerHint}>{saving ? 'Zapisujemy ustawienia…' : dirty ? 'Masz niezapisane zmiany.' : saved ? 'Zmiany zapisane na tym urządzeniu.' : 'Te ustawienia dotyczą nowych kosztorysów.'}</Text><Button title={saved && !dirty ? 'Ustawienia zapisane' : 'Zapisz ustawienia'} icon={saved && !dirty ? 'check' : 'save'} loading={saving} disabled={!loaded || saving || !dirty} onPress={save} /></View>;
+  const footer = <View style={styles.footer}>{error ? <Notice error compact>{error}</Notice> : null}<Text accessibilityLiveRegion="polite" style={styles.footerHint}>{saving ? 'Zapisujemy ustawienia…' : dirty ? 'Masz niezapisane zmiany.' : saved ? 'Zmiany zapisane na tym urządzeniu.' : 'Te ustawienia dotyczą nowych kosztorysów.'}</Text><Button title={saved && !dirty ? 'Ustawienia zapisane' : 'Zapisz ustawienia'} icon={saved && !dirty ? 'check' : 'save'} loading={saving} disabled={!loaded || saving || !dirty} onPress={save} /></View>;
   return <Screen tab keyboard footer={footer}>
-    <View style={styles.heading}><Text style={styles.kicker}>DANE I ZASADY WYCENY</Text><Text style={styles.title}>Twój warsztat</Text><Text style={styles.description}>Ustaw raz. Nazwa, logo i stawki będą gotowe przy kolejnej wycenie.</Text></View>
-    <View style={styles.card}>
+    <View style={[paperStyles.hero, styles.heading]}><View style={styles.heroTop}><View style={[paperStyles.iconTile, styles.headingIcon]}><Feather name="tool" size={24} color={colors.primary} /></View><Text style={styles.kicker}>DANE I ZASADY WYCENY</Text></View><Text style={styles.title}>Twój warsztat</Text><Text style={styles.description}>Twoja nazwa, logo i stawki. Gotowe do kolejnego kosztorysu.</Text></View>
+    <View style={[paperStyles.card, styles.card]}>
       <View style={styles.sectionHeader}><Feather name="tool" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Dane na kosztorysie</Text></View>
       <Field label="Nazwa warsztatu *" value={draft.name} editable={loaded && !saving} onChangeText={name => change({ name })} placeholder="np. Auto Serwis Kowalski" />
       <View style={styles.logoRow}>{draft.logo ? <Image source={{ uri: draft.logo }} style={styles.logo} contentFit="contain" transition={200} /> : <View style={styles.logoEmpty}><Feather name="image" size={26} color={colors.subtle} /></View>}<View style={styles.logoActions}><Button title={draft.logo ? 'Zmień logo' : 'Dodaj logo'} secondary compact disabled={!loaded || saving} icon="upload" onPress={pickLogo} />{draft.logo ? <Button title="Usuń logo" secondary compact danger disabled={!loaded || saving} onPress={() => change({ logo: '' })} /> : <Text style={styles.hint}>Opcjonalnie · pojawi się na PDF.</Text>}</View></View>
       <Disclosure title="Adres i telefon warsztatu" icon="map-pin"><Field label="Adres (opcjonalnie)" value={draft.address} editable={loaded && !saving} onChangeText={address => change({ address })} placeholder="Ulica, kod pocztowy, miejscowość" /><Field label="Telefon warsztatu (opcjonalnie)" keyboardType="phone-pad" value={draft.phone} editable={loaded && !saving} onChangeText={phone => change({ phone })} placeholder="+48 500 600 700" /></Disclosure>
     </View>
-    <View style={styles.card}>
+    <View style={[paperStyles.card, styles.card]}>
       <View style={styles.sectionHeader}><Feather name="sliders" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Domyślne stawki</Text></View>
       <Field label="Robocizna brutto (zł za godzinę)" keyboardType="decimal-pad" editable={loaded && !saving} value={rate} onChangeText={changeRate} hint="Możesz wpisać grosze po przecinku, np. 150,50." />
       <Field label="Narzut na cenę zakupu (%)" keyboardType="decimal-pad" editable={loaded && !saving} value={markup} onChangeText={changeMarkup} hint="Dotyczy części i materiałów. 25% oznacza zakup 100 zł → sprzedaż 125 zł." />
@@ -31,8 +32,8 @@ export function SettingsPage() {
 }
 export { SettingsPage as default };
 const styles = StyleSheet.create({
-  heading: { gap: spacing.sm }, kicker: { color: colors.primary, fontSize: typography.small, letterSpacing: 1, fontWeight: '600' }, title: { color: colors.text, fontSize: typography.title, fontWeight: '700', includeFontPadding: false }, description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, gap: spacing.lg }, sectionHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }, sectionTitle: { color: colors.text, fontSize: typography.section, fontWeight: '600', flexShrink: 1 },
+  heading: { gap: spacing.md }, heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, headingIcon: { backgroundColor: colors.surface }, kicker: { color: colors.primary, fontSize: typography.small, letterSpacing: 0.5, fontWeight: '600', flexShrink: 1, lineHeight: 20 }, title: { color: colors.text, fontSize: typography.title, lineHeight: 32, fontWeight: '700', includeFontPadding: false }, description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 },
+  card: { padding: spacing.md, gap: spacing.lg }, sectionHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }, sectionTitle: { color: colors.text, fontSize: typography.section, fontWeight: '600', flexShrink: 1 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, logo: { width: 72, height: 72, backgroundColor: colors.raised, borderRadius: radius.sm }, logoEmpty: { width: 72, height: 72, backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' }, logoActions: { flex: 1, gap: spacing.sm },
   hint: { color: colors.subtle, fontSize: typography.label, lineHeight: 23 }, example: { backgroundColor: colors.primaryDark, borderRadius: radius.sm, padding: spacing.md, gap: spacing.md }, exampleTitle: { color: colors.primary, fontSize: typography.body, fontWeight: '600', flexShrink: 1 }, exampleRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm }, exampleLabel: { color: colors.subtle, fontSize: typography.body }, examplePrice: { color: colors.primary, fontSize: typography.section, fontWeight: '700' }, footer: { gap: spacing.sm }, footerHint: { color: colors.subtle, fontSize: typography.label, textAlign: 'center', lineHeight: 22 },
 });

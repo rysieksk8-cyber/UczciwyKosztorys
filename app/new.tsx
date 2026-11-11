@@ -12,7 +12,8 @@ import { CostSummary } from '@/components/feature/CostSummary';
 import { useEstimateDraft } from '@/hooks/useEstimateDraft';
 import { useEstimateExit } from '@/hooks/useEstimateExit';
 import { money, total, vehicleLabels } from '@/services/estimates';
-import { colors, radius, spacing, typography } from '@/constants/theme';
+import { colors, layout, radius, spacing, typography } from '@/constants/theme';
+import { paperStyles } from '@/constants/styles';
 
 const stepNames = ['Pojazd', 'Opis', 'Ceny', 'Zapis'];
 const titles = ['Dla którego pojazdu?', 'Co zostało zrobione?', 'Sprawdź pozycje i ceny', 'Sprawdź i zapisz kosztorys'];
@@ -34,12 +35,12 @@ export function NewEstimatePage() {
     { text: 'Anuluj', style: 'cancel' }, { text: 'Usuń pozycję', style: 'destructive', onPress: () => draft.removeItem(id) },
   ]), [showAlert, draft.removeItem]);
   const navigation = <Stack.Screen options={{ gestureEnabled: false, headerLeft: () => <Pressable onPress={requestExit} disabled={draft.saving} accessibilityRole="button" accessibilityLabel="Zamknij tworzenie kosztorysu" accessibilityState={{ disabled: draft.saving }} style={({ pressed }) => [styles.close, pressed ? styles.pressed : null]}><Feather name="x" size={22} color={colors.text} /></Pressable> }} />;
-  const heading = <View style={styles.heading}>
+  const heading = <View style={[paperStyles.hero, styles.heading]}>
     <View style={styles.steps}>{stepNames.map((name, index) => {
       const current = index + 1 === draft.step;
       const complete = index + 1 < draft.step;
       const disabled = locked || !complete;
-      return <Pressable key={name} disabled={disabled} onPress={() => draft.goToStep(index + 1)} accessibilityRole="button" accessibilityLabel={`${index + 1}. ${name}${complete ? ', wróć do tego kroku' : ''}`} accessibilityState={{ selected: current, disabled }} style={({ pressed }) => [styles.step, pressed ? styles.pressed : null]}>
+      return <Pressable key={name} disabled={disabled} onPress={() => draft.goToStep(index + 1)} accessibilityRole="button" accessibilityLabel={`${index + 1}. ${name}${complete ? ', wróć do tego kroku' : ''}`} accessibilityState={{ selected: current, disabled }} style={({ pressed }) => [styles.step, current ? styles.currentStep : complete ? styles.completedStep : null, pressed ? styles.pressed : null]}>
         <View style={[styles.stepCircle, current ? styles.currentCircle : complete ? styles.completedCircle : null]}>{complete ? <Feather name="check" size={17} color={colors.primary} /> : <Text style={[styles.stepNumber, current ? styles.currentNumber : null]}>{index + 1}</Text>}</View>
         <Text style={[styles.stepLabel, current || complete ? styles.activeLabel : null]}>{name}</Text>
       </Pressable>;
@@ -51,9 +52,9 @@ export function NewEstimatePage() {
   </View>;
   const footer = <View style={styles.actions}>
     {draft.step >= 3 ? <View style={styles.footerTotal}><View style={styles.footerLabel}><Text style={styles.totalLabel}>Razem brutto</Text>{draft.missingCount ? <Text style={styles.missing}>Do uzupełnienia: {draft.missingCount} poz.</Text> : null}</View><Text style={styles.amount}>{money(total(draft.items))}</Text></View> : null}
-    {draft.error ? <Notice error>{draft.error}</Notice> : null}
+    {draft.error ? <Notice error compact>{draft.error}</Notice> : null}
     <Button title={draft.step === 4 ? 'Zapisz kosztorys' : draft.step === 3 ? 'Przejdź do podsumowania' : draft.step === 2 ? 'Sprawdź pozycje i ceny' : 'Przejdź do opisu pracy'} icon={draft.step === 4 ? 'check' : 'arrow-right'} loading={draft.saving} disabled={locked} onPress={continueDraft} />
-    {draft.step > 1 ? <Button title="Wróć do poprzedniego kroku" secondary compact disabled={locked} onPress={draft.back} /> : null}
+    {draft.step > 1 ? <Pressable accessibilityRole="button" accessibilityLabel="Wróć do poprzedniego kroku" accessibilityState={{ disabled: locked }} disabled={locked} onPress={draft.back} style={({ pressed }) => [styles.previousAction, locked ? styles.disabled : null, pressed ? styles.pressed : null]}><Feather name="chevron-left" size={18} color={colors.subtle} /><Text style={styles.previousText}>Poprzedni krok</Text></Pressable> : null}
   </View>;
   if (draft.step === 3) return <Screen scroll={false} keyboard footer={footer}>{navigation}<FlatList
     data={draft.items} keyExtractor={item => item.id}
@@ -80,12 +81,12 @@ export function NewEstimatePage() {
 export { NewEstimatePage as default };
 const styles = StyleSheet.create({
   close: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' }, pressed: { opacity: 0.7 },
-  heading: { gap: spacing.md }, steps: { flexDirection: 'row', gap: spacing.sm }, step: { flex: 1, minHeight: 64, alignItems: 'center', gap: spacing.sm },
+  heading: { gap: spacing.md, padding: spacing.md }, steps: { flexDirection: 'row', gap: spacing.sm }, step: { flex: 1, minHeight: 72, alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 2, borderBottomColor: colors.border }, currentStep: { borderBottomColor: colors.primary }, completedStep: { borderBottomColor: colors.primary },
   stepCircle: { width: 32, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border }, currentCircle: { backgroundColor: colors.primary, borderColor: colors.primary }, completedCircle: { backgroundColor: colors.primaryDark, borderColor: colors.primary }, stepNumber: { color: colors.subtle, fontSize: typography.label, fontWeight: '600' }, currentNumber: { color: colors.onPrimary }, stepLabel: { fontSize: typography.small, color: colors.subtle }, activeLabel: { color: colors.primary, fontWeight: '600' },
-  kicker: { color: colors.primary, fontSize: typography.small, letterSpacing: 1, fontWeight: '600' }, title: { color: colors.text, fontSize: typography.title, fontWeight: '700', lineHeight: 35, letterSpacing: -0.5, includeFontPadding: false }, description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 },
+  kicker: { color: colors.primary, fontSize: typography.small, letterSpacing: 1, fontWeight: '600' }, title: { color: colors.text, fontSize: typography.title, fontWeight: '700', lineHeight: 32, letterSpacing: -0.5, includeFontPadding: false }, description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 },
   vehicleTag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: colors.primaryDark, borderRadius: radius.sm, padding: spacing.sm }, vehicleTagText: { flexShrink: 1, color: colors.primary, fontSize: typography.label, fontWeight: '600' },
   tip: { padding: spacing.md, gap: spacing.md, flexDirection: 'row', backgroundColor: colors.primaryDark, borderRadius: radius.md }, tipText: { flex: 1, gap: spacing.sm }, tipTitle: { color: colors.primary, fontSize: typography.body, fontWeight: '600' }, hint: { color: colors.subtle, fontSize: typography.label, lineHeight: 23 },
-  card: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.md }, cardTitle: { color: colors.text, fontSize: typography.body, fontWeight: '600' }, reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }, reviewVehicle: { color: colors.text, fontSize: typography.section, fontWeight: '700' },
-  actions: { gap: spacing.sm }, footerTotal: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }, footerLabel: { gap: spacing.xs }, totalLabel: { color: colors.subtle, fontSize: typography.label }, missing: { color: colors.danger, fontSize: typography.small }, amount: { color: colors.primary, fontSize: typography.section, fontWeight: '700' },
-  list: { padding: spacing.md, paddingBottom: spacing.lg }, listHeader: { gap: spacing.lg, marginBottom: spacing.md }, addPanel: { gap: spacing.md, paddingVertical: spacing.md }, addActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  card: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, borderColor: colors.borderSoft, borderWidth: 1, borderRadius: radius.md }, cardTitle: { color: colors.text, fontSize: typography.body, fontWeight: '600' }, reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }, reviewVehicle: { color: colors.text, fontSize: typography.section, fontWeight: '700' },
+  actions: { gap: spacing.sm }, previousAction: { minHeight: layout.touchHeight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderRadius: radius.sm }, previousText: { color: colors.subtle, fontSize: typography.label, fontWeight: '500', lineHeight: 22 }, disabled: { opacity: 0.5 }, footerTotal: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm }, footerLabel: { gap: spacing.xs }, totalLabel: { color: colors.subtle, fontSize: typography.label }, missing: { color: colors.danger, fontSize: typography.small }, amount: { color: colors.primary, fontSize: typography.section, fontWeight: '700' },
+  list: { padding: spacing.md, paddingBottom: spacing.lg }, listHeader: { gap: spacing.md, marginBottom: spacing.md }, addPanel: { gap: spacing.md, paddingVertical: spacing.md }, addActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

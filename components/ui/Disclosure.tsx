@@ -17,9 +17,9 @@ export const Disclosure = memo(function Disclosure({ title, children, icon = 'he
   </View>;
 });
 const styles = StyleSheet.create({
-  container: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.sm, overflow: 'hidden' },
+  container: { borderWidth: 1, borderColor: colors.borderSoft, backgroundColor: colors.surface, borderRadius: radius.sm, overflow: 'hidden' },
   trigger: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
-  title: { flex: 1, color: colors.text, fontSize: typography.body, fontWeight: '600', includeFontPadding: false },
+  title: { flex: 1, color: colors.text, fontSize: typography.body, lineHeight: 24, fontWeight: '500', includeFontPadding: false },
   pressed: { opacity: 0.7, backgroundColor: colors.raised },
-  content: { padding: spacing.md, paddingTop: 0, gap: spacing.md },
+  content: { padding: spacing.md, gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.borderSoft },
 });

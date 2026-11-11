@@ -1,5 +1,13 @@
 # Kosztorys Mechanika — przegląd jakości
 
+## Odświeżenie wyłącznie warstwy wizualnej
+
+Ujednolicono typografię, matowe karty, delikatne obramowania, pola i przyciski. Strona główna ma zielony panel główny, jasny przycisk nowego kosztorysu i czytelne skróty do wizyt oraz warsztatu. Historia wyróżnia pojazd, rejestrację i kwotę brutto. Ekrany formularzy mają spójne nagłówki i wyraźne kroki; drugorzędne instrukcje kalendarza i dyktowania umieszczono w rozwijanej pomocy. Pole opisu jest dzięki temu wyżej. Dolne komunikaty błędów mają mniejszy padding, a powrót w kosztorysie jest lżejszą akcją tekstową o zachowanym obszarze dotyku.
+
+Zachowano dotychczasowy dolny inset i minimalny odstęp od paska systemowego, klucz lokalnej pamięci, dane, logikę zapisu i obliczeń, dyktowanie klawiaturą, PDF, WhatsApp oraz sposób otwierania kalendarza. Nie zmieniono app.json, zależności, pluginów, usług, hooków biznesowych ani backendu. Zmiany dotyczą wyglądu i rozmieszczenia informacji, nie nowych funkcji.
+
+Nie uruchomiono kompilacji, TypeScript ani testów urządzenia — brak terminala w edytorze. Przed wydaniem sprawdź szerokość 320 punktów, powiększony tekst, obrót, klawiaturę, długą nazwę pojazdu i kwotę oraz dolne przyciski nad nawigacją Androida. Nowy wygląd zainstalowanej aplikacji wymaga aktualizacji APK.
+
 ## Aktualnie: formularz w aplikacji kalendarza bez przeglądarki na telefonie
 
 Serwis `openGoogleCalendar` korzysta na Androidzie i iOS z `expo-calendar.createEventInCalendarAsync`, a nie z adresu HTTPS. Wywołanie przekazuje pojazd, rejestrację, opis, kontakt, lokalizację i prawidłowe daty jako obiekty Date. Android otwiera domyślną aplikację kalendarza lub pokazuje wybór aplikacji; użytkownik powinien wskazać Kalendarz Google i wybrać kalendarz swojego konta. **Nie wymuszamy pakietu Google.** Jeśli inna aplikacja jest domyślna, trzeba zmienić jej domyślną obsługę w ustawieniach telefonu. Na iOS otwierany jest systemowy formularz EventKit, nie aplikacja Google; konto Google musi być dodane do kalendarzy iOS, aby można było je wybrać.

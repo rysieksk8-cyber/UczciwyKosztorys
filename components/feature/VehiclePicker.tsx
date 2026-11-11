@@ -16,9 +16,9 @@ export const VehiclePicker = memo(function VehiclePicker({ value, onChange }: Ve
   })}</View></View>;
 });
 const styles = StyleSheet.create({
-  root: { gap: spacing.sm }, label: { color: colors.subtle, fontSize: typography.label, fontWeight: '500' },
+  root: { gap: spacing.sm }, label: { color: colors.text, fontSize: typography.label, fontWeight: '600', lineHeight: 20 },
   options: { flexDirection: 'row', gap: spacing.sm },
-  card: { minHeight: 112, flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.sm },
+  card: { minHeight: 104, flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radius.sm },
   selected: { borderColor: colors.primary, backgroundColor: colors.primaryDark }, pressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
-  title: { fontSize: typography.label, fontWeight: '600', color: colors.subtle, textAlign: 'center', includeFontPadding: false }, selectedTitle: { color: colors.primary },
+  title: { fontSize: typography.label, lineHeight: 20, fontWeight: '600', color: colors.subtle, textAlign: 'center', includeFontPadding: false }, selectedTitle: { color: colors.primary },
 });

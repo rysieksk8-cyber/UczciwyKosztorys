@@ -4,11 +4,12 @@ import { Feather } from '@expo/vector-icons';
 import { EstimateItem, money } from '@/services/estimates';
 import { useEstimateSummary } from '@/hooks/useEstimateSummary';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { paperStyles } from '@/constants/styles';
 
 interface CostSummaryProps { items: EstimateItem[]; title?: string }
 export const CostSummary = memo(function CostSummary({ items, title = 'Podsumowanie wyceny' }: CostSummaryProps) {
   const summary = useEstimateSummary(items);
-  return <View style={styles.card}>
+  return <View style={[paperStyles.card, styles.card]}>
     <View style={styles.heading}><Feather name="clipboard" size={20} color={colors.primary} /><Text style={styles.title}>{title}</Text></View>
     <View style={styles.row}><Text style={styles.label}>Robocizna</Text><Text style={styles.value}>{money(summary.categories.labor)}</Text></View>
     <View style={styles.row}><Text style={styles.label}>Części</Text><Text style={styles.value}>{money(summary.categories.parts)}</Text></View>
@@ -18,13 +19,13 @@ export const CostSummary = memo(function CostSummary({ items, title = 'Podsumowa
   </View>;
 });
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.primaryDark, borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
-  heading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { color: colors.text, fontSize: typography.body, fontWeight: '700', includeFontPadding: false },
+  card: { padding: spacing.md, gap: spacing.md },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingBottom: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderSoft },
+  title: { color: colors.text, fontSize: typography.body, fontWeight: '700', includeFontPadding: false, flexShrink: 1, lineHeight: 24 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   label: { color: colors.subtle, fontSize: typography.body },
   value: { color: colors.text, fontSize: typography.body, fontWeight: '500' },
-  total: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, alignItems: 'center', justifyContent: 'space-between' },
+  total: { backgroundColor: colors.primaryDark, borderRadius: radius.sm, padding: spacing.md, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, alignItems: 'center', justifyContent: 'space-between' },
   totalLabel: { gap: spacing.xs }, small: { color: colors.subtle, fontSize: typography.small },
   amount: { color: colors.primary, fontSize: typography.title, fontWeight: '700', includeFontPadding: false },
   warning: { flexDirection: 'row', gap: spacing.sm }, warningText: { color: colors.danger, fontSize: typography.label, lineHeight: 22, flex: 1 },

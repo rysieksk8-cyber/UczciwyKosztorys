@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Feather } from '@expo/vector-icons';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { voiceLimits } from '@/constants/voice';
+import { paperStyles } from '@/constants/styles';
 import { Button, Field, Notice } from '@/components/ui/Controls';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { useVoicePanel } from '@/hooks/useVoicePanel';
@@ -15,23 +16,23 @@ interface VoicePanelProps {
 export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recording, busy, finishing, seconds, onRecord, error, recognized, liveTranscript, available, checking, unavailableReason }: VoicePanelProps) {
   const { mode, chooseVoice, chooseManual, keyboardOnly, descriptionRef, focusDescription } = useVoicePanel();
   if (keyboardOnly) return <View style={styles.root}>
-    <View style={styles.keyboardPanel}>
+    <View style={[paperStyles.card, styles.keyboardPanel]}>
       <View style={styles.keyboardHeading}><View style={styles.keyboardIcon}><Feather name="mic" size={24} color={colors.primary} /></View><View style={styles.manualText}><Text style={styles.kicker}>DYKTOWANIE KLAWIATURĄ</Text><Text style={styles.manualTitle}>Powiedz, co naprawiłeś</Text></View></View>
-      <Text style={styles.caption}>W tej wersji używasz mikrofonu klawiatury telefonu zamiast przycisku nagrywania w aplikacji.</Text>
-      <View style={styles.instructions}>
-        <Text style={styles.help}>1. Dotknij pola opisu, aby otworzyć klawiaturę.</Text>
-        <Text style={styles.help}>2. Dotknij mikrofonu na klawiaturze i mów po polsku.</Text>
-        <Text style={styles.help}>3. Zakończ dyktowanie. Sprawdź nazwy, liczby i ceny.</Text>
-      </View>
-      <Button title="Otwórz klawiaturę" icon="edit-3" secondary onPress={focusDescription} />
+      <Text style={styles.caption}>Użyj mikrofonu klawiatury telefonu lub wpisz opis ręcznie.</Text>
+      <Button title="Otwórz klawiaturę" icon="edit-3" secondary compact onPress={focusDescription} />
     </View>
-    <Field inputRef={descriptionRef} label="Opis wykonanej pracy" placeholder={'Np. Wymiana oleju, 1 godzina robocizny, stawka 150 zł.\nOlej, cena zakupu 100 zł.'} multiline autoCorrect autoCapitalize="sentences" keyboardType="default" value={transcript} onChangeText={onChange} hint="Możesz też pisać ręcznie. Oddziel prace i części nową linią; ceny uzupełnisz w kolejnym kroku." />
+    <View style={[paperStyles.card, styles.descriptionCard]}><Field inputRef={descriptionRef} label="Opis wykonanej pracy" placeholder={'Np. Wymiana oleju, 1 godzina robocizny, stawka 150 zł.\nOlej, cena zakupu 100 zł.'} multiline autoCorrect autoCapitalize="sentences" keyboardType="default" value={transcript} onChangeText={onChange} hint="Możesz też pisać ręcznie. Oddziel prace i części nową linią; ceny uzupełnisz w kolejnym kroku." /></View>
     <Disclosure title="Nie widzę mikrofonu na klawiaturze">
       <Text style={styles.help}>Na Androidzie sprawdź opcję „Pisanie głosowe” w ustawieniach klawiatury, np. Gboard. Zezwól klawiaturze na mikrofon i wybierz język polski. Położenie mikrofonu zależy od klawiatury.</Text>
       <Text style={styles.help}>Na iPhonie sprawdź Ustawienia → Ogólne → Klawiatura → Włącz dyktowanie. Użyj klawiatury z językiem polskim.</Text>
       <Text style={styles.help}>Na komputerze wpisz opis ręcznie. Jeśli telefon nie udostępnia dyktowania, również możesz pisać — nie blokuje to tworzenia kosztorysu.</Text>
     </Disclosure>
     <Disclosure title="Jak dyktować prace i ceny?">
+      <View style={styles.instructions}>
+        <Text style={styles.help}>1. Dotknij pola opisu, aby otworzyć klawiaturę.</Text>
+        <Text style={styles.help}>2. Dotknij mikrofonu na klawiaturze i mów po polsku.</Text>
+        <Text style={styles.help}>3. Zakończ dyktowanie. Sprawdź nazwy, liczby i ceny.</Text>
+      </View>
       <Text style={styles.help}>Podaj nazwę pracy, czas i stawkę: „Wymiana oleju, 1 godzina, stawka 150 zł”. Części opisuj osobno: „Olej, cena zakupu 100 zł”. Po dyktowaniu dodaj nowe linie i popraw błędne liczby. Jeśli cena nie zostanie odczytana, wpiszesz ją w kroku „Ceny”.</Text>
       <Text style={styles.help}>Aplikacja otrzymuje tekst z klawiatury, nie nagrywa głosu i nie wywołuje OnSpace AI. Dyktowaniem zarządza dostawca klawiatury lub system telefonu; może wymagać internetu i przesyłać głos do swojej usługi.</Text>
     </Disclosure>
@@ -66,7 +67,8 @@ export const VoicePanel = memo(function VoicePanel({ transcript, onChange, recor
   </View>;
 });
 const styles = StyleSheet.create({
-  keyboardPanel: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, gap: spacing.md },
+  keyboardPanel: { padding: spacing.md, gap: spacing.md },
+  descriptionCard: { padding: spacing.md },
   keyboardHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, keyboardIcon: { width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryDark }, instructions: { gap: spacing.sm },
   root: { gap: spacing.md }, modes: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.raised, padding: spacing.xs, borderRadius: radius.sm },
   mode: { minHeight: 48, flex: 1, borderRadius: radius.sm, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm },
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: typography.section, fontWeight: '700', textAlign: 'center', includeFontPadding: false },
   caption: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 }, limit: { color: colors.subtle, fontSize: typography.small, textAlign: 'center' },
   manual: { flexDirection: 'row', gap: spacing.md, padding: spacing.md, backgroundColor: colors.primaryDark, borderRadius: radius.md }, manualText: { flex: 1, gap: spacing.sm },
-  manualTitle: { color: colors.text, fontSize: typography.body, fontWeight: '700' }, live: { backgroundColor: colors.primaryDark, padding: spacing.md, gap: spacing.sm, borderRadius: radius.md },
+  manualTitle: { color: colors.text, fontSize: typography.section, lineHeight: 26, fontWeight: '700', includeFontPadding: false }, live: { backgroundColor: colors.primaryDark, padding: spacing.md, gap: spacing.sm, borderRadius: radius.md },
   liveText: { color: colors.text, fontSize: typography.body, lineHeight: 26 }, confirmation: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   confirmationText: { color: colors.primary, fontSize: typography.label, flex: 1, lineHeight: 22 }, help: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 },
 });

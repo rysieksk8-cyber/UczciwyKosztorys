@@ -11,6 +11,7 @@ import { useWorkshop } from '@/hooks/useWorkshop';
 import { useDocument } from '@/hooks/useDocument';
 import { money, total } from '@/services/estimates';
 import { colors, radius, spacing, typography } from '@/constants/theme';
+import { paperStyles } from '@/constants/styles';
 
 export function EstimateDetailPage() {
   const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
@@ -35,8 +36,8 @@ export function EstimateDetailPage() {
   return <Screen keyboard>
     {fresh === '1' ? <View accessibilityLiveRegion="polite" style={styles.success}><Feather name="check-circle" size={22} color={colors.primary} /><View style={styles.successText}><Text style={styles.successTitle}>Kosztorys zapisany w historii</Text><Text style={styles.small}>Nie został jeszcze wysłany klientowi.</Text></View></View> : null}
     {storageError ? <Notice error>{storageError}</Notice> : null}
-    <View style={styles.overview}><Text style={styles.kicker}>{estimate.number}</Text><Text style={styles.title}>{estimate.vehicle}</Text><View style={styles.metadata}>{estimate.plate ? <View style={styles.plate}><Text style={styles.plateText}>{estimate.plate}</Text></View> : null}<Text style={styles.small}>{new Date(estimate.createdAt).toLocaleDateString('pl-PL')} · {estimate.items.length} pozycji</Text></View><View style={styles.totalRow}><Text style={styles.totalLabel}>Razem brutto</Text><Text style={styles.amount}>{money(total(estimate.items))}</Text></View></View>
-    <View style={styles.sendPanel}>
+    <View style={[paperStyles.hero, styles.overview]}><Text style={styles.kicker}>{estimate.number}</Text><Text style={styles.title}>{estimate.vehicle}</Text><View style={styles.metadata}>{estimate.plate ? <View style={styles.plate}><Text style={styles.plateText}>{estimate.plate}</Text></View> : null}<Text style={styles.small}>{new Date(estimate.createdAt).toLocaleDateString('pl-PL')} · {estimate.items.length} pozycji</Text></View><View style={styles.totalRow}><Text style={styles.totalLabel}>Razem brutto</Text><Text style={styles.amount}>{money(total(estimate.items))}</Text></View></View>
+    <View style={[paperStyles.card, styles.sendPanel]}>
       <View style={styles.sendHeading}><Feather name="send" size={22} color={colors.primary} /><Text style={styles.sectionTitle}>Przekaż klientowi</Text></View>
       <Button title={Platform.OS === 'web' ? 'Drukuj / zapisz PDF' : 'Udostępnij kosztorys PDF'} icon={Platform.OS === 'web' ? 'file-text' : 'share'} loading={busy === 'pdf' || busy === 'share'} disabled={Boolean(busy)} onPress={() => run(Platform.OS === 'web' ? 'pdf' : 'share')} />
       <Text style={styles.description}>{Platform.OS === 'web' ? 'W oknie drukowania wybierz „Zapisz jako PDF”. Plik możesz później dołączyć do wiadomości.' : 'Aplikacja przygotuje PDF. W oknie udostępniania wybierz WhatsApp, e-mail lub inną aplikację, a następnie odbiorcę.'}</Text>
@@ -48,7 +49,7 @@ export function EstimateDetailPage() {
         <Notice>Wiadomość nie zawiera załącznika. Aby wysłać dokument, użyj przycisku „Udostępnij kosztorys PDF” i wybierz rozmowę z klientem.{Platform.OS === 'web' ? ' W przeglądarce dołącz zapisany PDF ręcznie.' : ''}</Notice>
       </Disclosure>
     </View>
-    <View style={styles.sendPanel}>
+    <View style={[paperStyles.card, styles.sendPanel]}>
       <View style={styles.sendHeading}><Feather name="calendar" size={22} color={colors.primary} /><Text style={styles.sectionTitle}>Termin naprawy</Text></View>
       <Text style={styles.description}>Przenieś pojazd, telefon klienta i zakres prac do formularza wizyty. Na telefonie zapis zatwierdź w aplikacji kalendarza, wybierając kalendarz konta Google.</Text>
       <Button title="Zaplanuj wizytę w kalendarzu" secondary icon="calendar" disabled={Boolean(busy)} onPress={planAppointment} />
@@ -65,7 +66,7 @@ export function EstimateDetailPage() {
 export { EstimateDetailPage as default };
 const styles = StyleSheet.create({
   success: { backgroundColor: colors.primaryDark, borderRadius: radius.sm, flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md }, successText: { flex: 1, gap: spacing.xs }, successTitle: { color: colors.primary, fontSize: typography.body, fontWeight: '600' }, small: { color: colors.subtle, fontSize: typography.small, lineHeight: 20 },
-  overview: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primaryDark, gap: spacing.md }, kicker: { color: colors.primary, fontSize: typography.small, fontWeight: '600', letterSpacing: 1 }, title: { color: colors.text, fontSize: typography.title, fontWeight: '700', lineHeight: 35, includeFontPadding: false }, metadata: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, plate: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, plateText: { color: colors.text, fontSize: typography.body, fontWeight: '600', letterSpacing: 1 },
+  overview: { padding: spacing.lg, gap: spacing.md }, kicker: { color: colors.primary, fontSize: typography.small, fontWeight: '600', letterSpacing: 1 }, title: { color: colors.text, fontSize: typography.title, fontWeight: '700', lineHeight: 32, includeFontPadding: false }, metadata: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }, plate: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, plateText: { color: colors.text, fontSize: typography.body, fontWeight: '600', letterSpacing: 1 },
   totalRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border }, totalLabel: { color: colors.subtle, fontSize: typography.body }, amount: { color: colors.primary, fontSize: typography.title, fontWeight: '700' },
-  description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 }, sendPanel: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, gap: spacing.md }, sendHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, sectionTitle: { color: colors.text, fontSize: typography.section, fontWeight: '600', flexShrink: 1 }, ready: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }, readyText: { color: colors.primary, fontSize: typography.label, lineHeight: 22, flex: 1 }, previewHeading: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  description: { color: colors.subtle, fontSize: typography.body, lineHeight: 26 }, sendPanel: { padding: spacing.md, gap: spacing.md }, sendHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, sectionTitle: { color: colors.text, fontSize: typography.section, fontWeight: '600', lineHeight: 26, includeFontPadding: false, flexShrink: 1 }, ready: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }, readyText: { color: colors.primary, fontSize: typography.label, lineHeight: 22, flex: 1 }, previewHeading: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
 });
