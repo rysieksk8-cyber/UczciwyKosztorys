@@ -10,6 +10,7 @@ export function useAppointment(estimateId?: string) {
   const [errors, setErrors] = useState<AppointmentErrors>({});
   const [error, setError] = useState('');
   const [opened, setOpened] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
   const [busy, setBusy] = useState(false);
   const initializedFor = useRef<string | null>(null);
   const working = useRef(false);
@@ -20,26 +21,29 @@ export function useAppointment(estimateId?: string) {
     if (!loaded || initializedFor.current === key || (estimateId && !estimate)) return;
     initializedFor.current = key;
     setDraft(createAppointmentDraft(settings, estimate));
-    setErrors({}); setError(''); setOpened(false);
+    setErrors({}); setError(''); setOpened(false); setCancelled(false);
   }, [loaded, key, estimateId, estimate, settings]);
   const change = useCallback((patch: Partial<AppointmentDraft>) => {
     if (working.current) return;
     setDraft(previous => ({ ...previous, ...patch }));
-    setErrors({}); setError(''); setOpened(false);
+    setErrors({}); setError(''); setOpened(false); setCancelled(false);
   }, []);
   const chooseDay = useCallback((offset: number) => change({ date: appointmentDay(offset) }), [change]);
   const open = useCallback(async () => {
     if (working.current || !loaded || (estimateId && !estimate)) return;
     const invalid = validateAppointment(draft);
-    setErrors(invalid); setError(''); setOpened(false);
+    setErrors(invalid); setError(''); setOpened(false); setCancelled(false);
     if (Object.keys(invalid).length) {
       setError('Sprawdź zaznaczone pola przed otwarciem kalendarza.');
       return;
     }
     working.current = true; setBusy(true);
     try {
-      await openGoogleCalendar(draft);
-      if (alive.current) setOpened(true);
+      const result = await openGoogleCalendar(draft);
+      if (alive.current) {
+        setOpened(result === 'opened');
+        setCancelled(result === 'cancelled');
+      }
     } catch (reason) {
       if (alive.current) setError(reason instanceof Error ? reason.message : 'Nie udało się otworzyć kalendarza. Spróbuj ponownie.');
     } finally {
@@ -50,5 +54,5 @@ export function useAppointment(estimateId?: string) {
   const range = useMemo(() => appointmentRange(draft), [draft]);
   const summary = range ? `${range.start.toLocaleDateString('pl-PL')} · ${range.start.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })} – ${range.end.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}${range.start.getDate() !== range.end.getDate() ? ` (${range.end.toLocaleDateString('pl-PL')})` : ''}` : 'Uzupełnij poprawną datę i godzinę.';
   const timeZone = useMemo(() => appointmentTimeZone(), []);
-  return { draft, errors, error, opened, busy, loaded, unavailable: loaded && Boolean(estimateId) && !estimate, change, chooseDay, open, summary, timeZone, today: appointmentDay(0), tomorrow: appointmentDay(1) };
+  return { draft, errors, error, opened, cancelled, busy, loaded, unavailable: loaded && Boolean(estimateId) && !estimate, change, chooseDay, open, summary, timeZone, today: appointmentDay(0), tomorrow: appointmentDay(1) };
 }

@@ -1,5 +1,5 @@
 // Local checks after exporting: node scripts/check-calendar.cjs
-// Does not contact Google, change user data or run a backend server.
+// No Google requests, user data changes or APK compilation.
 process.env.TZ = 'Europe/Warsaw';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -14,12 +14,31 @@ const loaded = new Module(file, module);
 loaded.filename = file;
 loaded.paths = Module._nodeModulePaths(path.dirname(file));
 let openedUrl = '';
+let browserCalls = 0;
 let shouldFail = false;
+let nativeCalls = 0;
+let nativeEvent = null;
+let nativeAction = 'done';
+let nativeAvailable = true;
+const platform = { OS: 'web' };
 const originalRequire = loaded.require.bind(loaded);
-loaded.require = name => name === 'react-native' ? { Linking: { openURL: async url => {
-  if (shouldFail) throw new Error('No browser');
-  openedUrl = url;
-} } } : originalRequire(name);
+loaded.require = name => {
+  if (name === 'react-native') return { Platform: platform, Linking: { openURL: async url => {
+    browserCalls += 1;
+    if (shouldFail) throw new Error('No browser');
+    openedUrl = url;
+  } } };
+  if (name === 'expo-calendar') {
+    if (!nativeAvailable) throw new Error('Native module not installed');
+    return { createEventInCalendarAsync: async event => {
+      nativeCalls += 1;
+      if (shouldFail) throw new Error('No calendar application');
+      nativeEvent = event;
+      return { action: nativeAction };
+    } };
+  }
+  return originalRequire(name);
+};
 loaded._compile(code, file);
 const calendar = loaded.exports;
 const settings = { name: 'Warsztat', address: 'Łódź, Długa 1', phone: '', logo: '', hourlyRate: 150, markup: 25 };
@@ -57,14 +76,47 @@ async function main() {
   assert.match(url.searchParams.get('details'), /Klient: Łukasz/);
   assert.match(url.searchParams.get('details'), /Telefon klienta: \+48 500 600 700/);
   assert.equal(url.searchParams.has('add'), false, 'No customer invitations');
-  assert.throws(() => calendar.buildGoogleCalendarUrl({ ...draft, vehicle: '' }, now));
+  assert.throws(() => calendar.buildCalendarEvent({ ...draft, vehicle: '' }, now));
+  const event = calendar.buildCalendarEvent(draft, now);
+  assert.equal(event.startDate.getTime(), winterRange.start.getTime());
+  assert.equal(event.endDate.getTime(), winterRange.end.getTime());
+  assert.equal(event.title, url.searchParams.get('text'));
+  assert.equal(event.notes, url.searchParams.get('details'));
+  assert.equal(event.allDay, false);
+  assert.equal(event.timeZone, 'Europe/Warsaw');
   const seeded = calendar.createAppointmentDraft(settings, { vehicle: 'Octavia', plate: 'WWA', phone: '+48 123456789', number: 'UK/1', items: [{ name: 'Wymiana oleju' }] });
   assert.equal(seeded.vehicle, 'Octavia'); assert.equal(seeded.description, 'Wymiana oleju'); assert.equal(seeded.estimateNumber, 'UK/1');
-  await calendar.openGoogleCalendar({ ...draft, date: '20.01.2099' });
+  const future = { ...draft, date: '20.01.2099' };
+  nativeAvailable = false;
+  assert.equal(await calendar.openGoogleCalendar(future), 'opened');
   assert.match(openedUrl, /^https:\/\/calendar\.google\.com\/calendar\/render\?/);
+  assert.equal(nativeCalls, 0, 'Web must not import native calendar');
   shouldFail = true;
-  await assert.rejects(calendar.openGoogleCalendar({ ...draft, date: '20.01.2099' }), /Nie udało się otworzyć/);
-  console.log('OK: calendar dates, validation, daylight-saving time, encoding, prefilling and browser error handling.');
-  console.log('Does not verify Google UI, saving events, native linking or APK compilation.');
+  await assert.rejects(calendar.openGoogleCalendar(future), /Nie udało się otworzyć/);
+  shouldFail = false;
+  const webCalls = browserCalls;
+  platform.OS = 'android';
+  await assert.rejects(calendar.openGoogleCalendar(future), /nowego APK/);
+  assert.equal(browserCalls, webCalls, 'Missing native module must not open a browser');
+  nativeAvailable = true;
+  assert.equal(await calendar.openGoogleCalendar(future), 'opened');
+  assert.equal(nativeEvent.startDate.getTime(), calendar.appointmentRange(future).start.getTime());
+  assert.equal(nativeEvent.endDate.getTime(), calendar.appointmentRange(future).end.getTime());
+  nativeAction = 'canceled';
+  assert.equal(await calendar.openGoogleCalendar(future), 'opened', 'Android result does not confirm saving or cancellation');
+  shouldFail = true;
+  await assert.rejects(calendar.openGoogleCalendar(future), /Zainstaluj lub włącz Kalendarz Google/);
+  assert.equal(browserCalls, webCalls, 'Native errors must not silently fall back to browser');
+  shouldFail = false;
+  platform.OS = 'ios';
+  assert.equal(await calendar.openGoogleCalendar(future), 'cancelled');
+  nativeAction = 'done';
+  assert.equal(await calendar.openGoogleCalendar(future), 'opened');
+  assert.equal(browserCalls, webCalls, 'Mobile must never open the browser');
+  const previousNativeCalls = nativeCalls;
+  await assert.rejects(calendar.openGoogleCalendar({ ...future, vehicle: '' }), /Wpisz markę/);
+  assert.equal(nativeCalls, previousNativeCalls, 'Validate before opening native UI');
+  console.log('OK: dates, DST, validation, prefilling, native event payload, web isolation and no mobile browser fallback.');
+  console.log('Mocks only: does not verify Google UI, calendar selection, saving, installed native module or APK compilation.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

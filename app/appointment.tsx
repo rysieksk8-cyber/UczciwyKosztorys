@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/layout/Screen';
@@ -13,25 +13,33 @@ export function AppointmentPage() {
   const estimateId = Array.isArray(params.estimateId) ? params.estimateId[0] : params.estimateId;
   const router = useRouter();
   const { wide } = useViewport();
-  const { draft, errors, error, opened, busy, loaded, unavailable, change, chooseDay, open, summary, timeZone, today, tomorrow } = useAppointment(estimateId);
+  const { draft, errors, error, opened, cancelled, busy, loaded, unavailable, change, chooseDay, open, summary, timeZone, today, tomorrow } = useAppointment(estimateId);
+  const web = Platform.OS === 'web';
+  const openTitle = web ? 'Otwórz podgląd Google w przeglądarce' : 'Otwórz aplikację kalendarza';
   if (!loaded) return <Screen><ActivityIndicator color={colors.primary} /></Screen>;
   if (unavailable) return <Screen><Notice error>Nie znaleziono kosztorysu. Możesz utworzyć wizytę bez powiązanego dokumentu.</Notice><Button title="Nowa wizyta" icon="calendar" onPress={() => router.replace('/appointment')} /></Screen>;
   const footer = <View style={styles.footer}>
     {error ? <Notice error>{error}</Notice> : null}
-    <Text style={styles.hint}>{opened ? 'Aplikacja nie potwierdza zapisu wizyty w Google.' : 'Wybierzesz kalendarz i zatwierdzisz zapis w Google.'}</Text>
-    <Button title={opened ? 'Wróć do kosztorysów' : 'Otwórz formularz Google'} icon={opened ? 'arrow-left' : 'external-link'} loading={busy} onPress={opened ? () => router.back() : open} />
+    <Text style={styles.hint}>{opened ? 'Otwarcie formularza nie potwierdza zapisania wizyty. Sprawdź ją w kalendarzu.' : web ? 'Podgląd na komputerze korzysta z przeglądarki. Na telefonie otwieramy aplikację kalendarza.' : 'Sprawdź termin, wybierz kalendarz konta Google i naciśnij „Zapisz” w kalendarzu.'}</Text>
+    <Button title={opened ? 'Wróć do kosztorysów' : openTitle} icon={opened ? 'arrow-left' : web ? 'external-link' : 'calendar'} loading={busy} disabled={busy} onPress={opened ? () => router.canGoBack() ? router.back() : router.replace('/(tabs)') : open} />
   </View>;
   return <Screen keyboard footer={footer}>
     <View style={styles.hero}>
       <View style={styles.heading}><Feather name="calendar" size={24} color={colors.primary} /><Text style={styles.kicker}>TERMIN NAPRAWY</Text></View>
       <Text style={styles.title}>Zaplanuj wizytę</Text>
-      <Text style={styles.body}>Pojazd, klient i termin w jednym wydarzeniu. Przygotuj dane tutaj, a zapis zatwierdź w Kalendarzu Google.</Text>
+      <Text style={styles.body}>Pojazd, klient i termin w jednym wydarzeniu. Przygotuj dane tutaj, a zapis zatwierdź w aplikacji kalendarza.</Text>
       {draft.estimateNumber ? <View style={styles.badge}><Feather name="file-text" size={16} color={colors.primary} /><Text style={styles.badgeText}>{draft.estimateNumber}</Text></View> : null}
     </View>
+    <Notice>{web
+      ? 'To podgląd komputerowy: tutaj otwiera się strona Google. W nowym APK formularz otworzy się w aplikacji kalendarza bez przeglądarki.'
+      : Platform.OS === 'android'
+        ? 'Android otworzy domyślną aplikację kalendarza lub zapyta o wybór. Wskaż Kalendarz Google. Jeśli otwiera się inny kalendarz, zmień domyślną obsługę w ustawieniach telefonu. Aplikacja nie wymusza konkretnego kalendarza.'
+        : 'Na iPhonie otwieramy systemowy formularz, nie aplikację Google. Wybierz kalendarz konta Google dodanego w ustawieniach iOS, aby wizyta pojawiła się także w Kalendarzu Google.'}</Notice>
+    {cancelled ? <Notice>Dodawanie wizyty zostało anulowane. Dane formularza pozostały bez zmian.</Notice> : null}
     {opened ? <View style={styles.card} accessibilityLiveRegion="polite">
-      <View style={styles.heading}><Feather name="external-link" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Dane przekazane do Google</Text></View>
-      <Text style={styles.body}>W formularzu Google wybierz właściwe konto i kalendarz, a następnie naciśnij „Zapisz”. Jeśli wizyta jest już zapisana, nie twórz jej ponownie.</Text>
-      <Button title="Otwórz formularz ponownie" secondary icon="external-link" loading={busy} onPress={open} />
+      <View style={styles.heading}><Feather name="calendar" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Formularz kalendarza otwarty</Text></View>
+      <Text style={styles.body}>W kalendarzu wybierz właściwe konto Google i naciśnij „Zapisz”. Po powrocie sprawdź, czy wydarzenie jest widoczne. Jeśli wizyta jest już zapisana, nie twórz jej ponownie.</Text>
+      <Button title="Otwórz formularz ponownie" secondary icon={web ? 'external-link' : 'calendar'} loading={busy} disabled={busy} onPress={open} />
     </View> : null}
     <View style={styles.card}>
       <View style={styles.heading}><Feather name="tool" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Pojazd i klient</Text></View>
@@ -63,7 +71,7 @@ export function AppointmentPage() {
       <Field label="Zakres prac lub uwagi (opcjonalnie)" value={draft.description} onChangeText={description => change({ description })} error={errors.description} editable={!busy} multiline maxLength={500} placeholder="np. Wymiana oleju i filtrów. Klient zostawia samochód rano." />
       <Field label="Miejsce wizyty (opcjonalnie)" value={draft.location} onChangeText={location => change({ location })} error={errors.location} editable={!busy} maxLength={200} placeholder="Adres warsztatu" hint="Adres jest uzupełniany z ustawień warsztatu, jeśli został zapisany." />
     </View>
-    <Notice>Potrzebujesz internetu i konta Google w przeglądarce. Dane formularza przekażemy do Google dopiero po naciśnięciu przycisku. To nie jest automatyczna synchronizacja: aplikacja nie odczytuje kalendarza, nie sprawdza wolnych terminów i nie wysyła zaproszeń klientowi.</Notice>
+    <Notice>{web ? 'W podglądzie potrzebujesz internetu i konta Google w przeglądarce.' : 'Na telefonie potrzebujesz aplikacji kalendarza i skonfigurowanego konta Google. Synchronizacja z Google zależy od ustawień telefonu i dostępu do internetu. Przeglądarka nie jest otwierana, także przy błędzie.'} Dane przekazujemy dopiero po naciśnięciu przycisku. Nie odczytujemy kalendarza, nie sprawdzamy wolnych terminów, nie potwierdzamy zapisu ani nie wysyłamy zaproszeń klientowi.</Notice>
   </Screen>;
 }
 export { AppointmentPage as default };

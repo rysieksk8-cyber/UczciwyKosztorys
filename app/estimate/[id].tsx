@@ -50,8 +50,8 @@ export function EstimateDetailPage() {
     </View>
     <View style={styles.sendPanel}>
       <View style={styles.sendHeading}><Feather name="calendar" size={22} color={colors.primary} /><Text style={styles.sectionTitle}>Termin naprawy</Text></View>
-      <Text style={styles.description}>Przenieś pojazd, telefon klienta i zakres prac do formularza wizyty. Wybierz termin, a zapis zatwierdź w Google.</Text>
-      <Button title="Zaplanuj wizytę w Google" secondary icon="calendar" disabled={Boolean(busy)} onPress={planAppointment} />
+      <Text style={styles.description}>Przenieś pojazd, telefon klienta i zakres prac do formularza wizyty. Na telefonie zapis zatwierdź w aplikacji kalendarza, wybierając kalendarz konta Google.</Text>
+      <Button title="Zaplanuj wizytę w kalendarzu" secondary icon="calendar" disabled={Boolean(busy)} onPress={planAppointment} />
     </View>
     <View style={styles.previewHeading}><Feather name="file-text" size={20} color={colors.primary} /><Text style={styles.sectionTitle}>Podgląd dokumentu</Text></View>
     <DocumentPreview estimate={estimate} />

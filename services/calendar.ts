@@ -1,4 +1,4 @@
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import type { Estimate, WorkshopSettings } from './estimates';
 
 export const appointmentDurations = [30, 60, 120, 180] as const;
@@ -67,7 +67,7 @@ export function validateAppointment(draft: AppointmentDraft, now = new Date()): 
 export function appointmentTimeZone(): string {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch { return ''; }
 }
-export function buildGoogleCalendarUrl(draft: AppointmentDraft, now = new Date()): string {
+export function buildCalendarEvent(draft: AppointmentDraft, now = new Date()) {
   const errors = validateAppointment(draft, now);
   const firstError = Object.values(errors)[0];
   if (firstError) throw new Error(firstError);
@@ -81,19 +81,50 @@ export function buildGoogleCalendarUrl(draft: AppointmentDraft, now = new Date()
     draft.estimateNumber ? `Kosztorys: ${draft.estimateNumber}` : '',
     draft.description.trim(),
   ].filter(Boolean).join('\n');
-  // Convert device-local times to unambiguous UTC instants, including summer/winter time.
+  return {
+    title, notes: details, location: draft.location.trim(),
+    startDate: range.start, endDate: range.end, allDay: false,
+    timeZone: appointmentTimeZone() || undefined,
+  };
+}
+export function buildGoogleCalendarUrl(draft: AppointmentDraft, now = new Date()): string {
+  const event = buildCalendarEvent(draft, now);
+  // The browser route is used ONLY in web preview, never as a mobile fallback.
   const googleDate = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
   const params: Record<string, string> = {
-    action: 'TEMPLATE', text: title, dates: `${googleDate(range.start)}/${googleDate(range.end)}`,
-    details, location: draft.location.trim(),
+    action: 'TEMPLATE', text: event.title, dates: `${googleDate(event.startDate)}/${googleDate(event.endDate)}`,
+    details: event.notes, location: event.location,
   };
-  const timeZone = appointmentTimeZone();
+  const timeZone = event.timeZone;
   if (timeZone) params.ctz = timeZone;
   const query = Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
   return `https://calendar.google.com/calendar/render?${query}`;
 }
-export async function openGoogleCalendar(draft: AppointmentDraft): Promise<void> {
-  const url = buildGoogleCalendarUrl(draft);
-  try { await Linking.openURL(url); }
-  catch { throw new Error('Nie udało się otworzyć Kalendarza Google. Sprawdź przeglądarkę i połączenie z internetem, a następnie spróbuj ponownie.'); }
+export type CalendarOpenResult = 'opened' | 'cancelled';
+export async function openGoogleCalendar(draft: AppointmentDraft): Promise<CalendarOpenResult> {
+  const event = buildCalendarEvent(draft);
+  if (Platform.OS === 'web') {
+    try { await Linking.openURL(buildGoogleCalendarUrl(draft)); return 'opened'; }
+    catch { throw new Error('Nie udało się otworzyć podglądu Google w przeglądarce. Sprawdź połączenie z internetem.'); }
+  }
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+    throw new Error('Dodawanie wizyt w aplikacji kalendarza wymaga telefonu z Androidem lub iPhone’a.');
+  }
+  try {
+    // Expo Calendar preserves epoch milliseconds as native longs; generic intent extras
+    // in Expo SDK 53 truncate these dates. The system chooses the calendar application.
+    // No calendar reads, direct writes, permissions requests, OAuth or browser fallback.
+    const calendar = await import('expo-calendar');
+    if (typeof calendar.createEventInCalendarAsync !== 'function') {
+      throw new Error('Calendar dialog unavailable');
+    }
+    const result = await calendar.createEventInCalendarAsync(event);
+    // Android apps do not reliably report whether the event was saved; never claim it.
+    if (Platform.OS === 'ios' && result.action === 'canceled') return 'cancelled';
+    return 'opened';
+  } catch {
+    throw new Error(Platform.OS === 'android'
+      ? 'Nie udało się otworzyć aplikacji kalendarza. Zainstaluj lub włącz Kalendarz Google i korzystaj z nowego APK Kosztorysu Mechanika. Dane formularza pozostają tutaj; przeglądarka nie zostanie otwarta.'
+      : 'Nie udało się otworzyć systemowego formularza kalendarza. Sprawdź kalendarz telefonu i zainstaluj aktualną wersję Kosztorysu Mechanika. Dane formularza pozostają tutaj.');
+  }
 }

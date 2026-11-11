@@ -12,7 +12,11 @@
       "voiceInputMode": "keyboard"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Kosztorys Mechanika otwiera formularz wizyty, której zapis zatwierdzasz samodzielnie.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Pozwól dodać wizytę po zatwierdzeniu w formularzu kalendarza."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +24,8 @@
         "backgroundColor": "#F4F7F2"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "blockedPermissions": ["android.permission.READ_CALENDAR", "android.permission.WRITE_CALENDAR"]
     },
     "web": {
       "bundler": "metro",

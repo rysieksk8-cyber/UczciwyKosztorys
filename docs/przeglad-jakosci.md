@@ -1,6 +1,18 @@
 # Kosztorys Mechanika — przegląd jakości
 
-## Wizyty w Kalendarzu Google — formularz do samodzielnego zatwierdzenia
+## Aktualnie: formularz w aplikacji kalendarza bez przeglądarki na telefonie
+
+Serwis `openGoogleCalendar` korzysta na Androidzie i iOS z `expo-calendar.createEventInCalendarAsync`, a nie z adresu HTTPS. Wywołanie przekazuje pojazd, rejestrację, opis, kontakt, lokalizację i prawidłowe daty jako obiekty Date. Android otwiera domyślną aplikację kalendarza lub pokazuje wybór aplikacji; użytkownik powinien wskazać Kalendarz Google i wybrać kalendarz swojego konta. **Nie wymuszamy pakietu Google.** Jeśli inna aplikacja jest domyślna, trzeba zmienić jej domyślną obsługę w ustawieniach telefonu. Na iOS otwierany jest systemowy formularz EventKit, nie aplikacja Google; konto Google musi być dodane do kalendarzy iOS, aby można było je wybrać.
+
+Przeglądarka pozostaje tylko w webowym Live Preview, z wyraźną informacją na ekranie. Telefon nigdy nie przechodzi automatycznie do przeglądarki, również przy braku modułu lub aplikacji. Błąd zachowuje dane i pokazuje instrukcję instalacji aktualnego APK oraz włączenia kalendarza. Anulowanie zgłoszone przez iOS zachowuje formularz. Wynik Androida nie potwierdza zapisu, dlatego ekran nie wyświetla komunikatu „zapisano”. Użytkownik zatwierdza zapis w kalendarzu i sprawdza wydarzenie po powrocie. Szkic nadal nie jest utrwalany po zamknięciu ekranu.
+
+Nie odczytujemy kalendarzy ani wydarzeń, nie wykonujemy bezpośrednich zapisów i nie prosimy o pełny dostęp do kalendarza. Android blokuje uprawnienia READ_CALENDAR i WRITE_CALENDAR: systemowe okno dodawania ich nie wymaga. Dodano opisy iOS dla formularza kalendarza. Nie ma OAuth, Calendar API, backendowych zapisów ani automatycznej kontroli kolizji. Synchronizacja wydarzenia z kontem Google należy do aplikacji kalendarza i ustawień telefonu.
+
+Moduł jest ładowany dopiero przy wywołaniu na telefonie; błąd ładowania jest obsłużony. Potrzebna jest nowa kompilacja APK z modułem `expo-calendar` zgodnym z Expo projektu. Po eksporcie właściwą wersję dobiera `npx expo install expo-calendar` (dla Expo SDK 53: linia 14.x, nie najnowsze 58.x). Nie zmieniono package.json ani plików blokady w edytorze. Zachowano plugin withSpeechCompatibility, tryb dyktowania, historię, ustawienia i dokumenty.
+
+Rozszerzono `scripts/check-calendar.cjs` o payload natywny, poprawne milisekundy dat, brak importu natywnego na web, brak otwierania przeglądarki na telefonie, brak modułu, błąd aplikacji oraz anulowanie na iOS. **Testów, TypeScript i kompilacji APK nie uruchomiono — edytor nie udostępnia terminala.** Atrapy testowe sprawdzają logikę, nie integrację na urządzeniu. Ręcznie przetestuj nowe APK: Google jako domyślny kalendarz, wybór aplikacji przy kilku kalendarzach, wybór konta, polskie znaki, datę i czas letni/zimowy, zapis, anulowanie, powrót, wyłączony Google Calendar i brak podwójnych wydarzeń. iOS wymaga osobnego testu.
+
+## Poprzednia wersja: wizyty przez formularz Google w przeglądarce
 
 Dodano ekran `/appointment`, dostępny z karty „Wizyty w Kalendarzu Google” na stronie głównej i ze szczegółów kosztorysu. W drugim przypadku pojazd, rejestracja, telefon, numer dokumentu i nazwy prac uzupełniają formularz. Adres jest pobierany z ustawień warsztatu. Można podać klienta, datę, godzinę, czas trwania i uwagi; domyślnie proponowane jest jutro o 09:00. Wszystkie dane można poprawić.
 
